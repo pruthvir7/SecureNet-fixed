@@ -100,9 +100,8 @@ def get_client_ip():
     return request.remote_addr
 
 def get_ip_location(ip_address):
-    """Get location from IP using ipinfo.io + IPHub VPN detection"""
-    import urllib.request
-    import json
+    """Get location and VPN detection from IPHub only"""
+    import requests
     
     # Skip localhost/private IPs
     if ip_address in ['127.0.0.1', '::1', 'localhost', '0.0.0.0'] or \
@@ -121,55 +120,42 @@ def get_ip_location(ip_address):
         'is_vpn': False
     }
     
-    # Get geolocation from ipinfo.io
+    # Use IPHub for both geolocation AND VPN detection
     try:
-        url = f'https://ipinfo.io/{ip_address}/json'
-        req = urllib.request.Request(url, headers={'Accept': 'application/json'})
-        
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
-            
-            org = data.get('org', '')
-            asn = '0'
-            if org and org.startswith('AS'):
-                asn = org.split()[0].replace('AS', '')
-            
-            result['country'] = data.get('country', 'Unknown')
-            result['asn'] = asn
-            
-    except Exception as e:
-        print(f"❌ ipinfo error: {type(e).__name__}")
-    
-    # Check for VPN/proxy using IPHub
-    try:
-        import requests
+        print(f"🔍 Calling IPHub for {ip_address}")
         
         iphub_response = requests.get(
             f'https://v2.api.iphub.info/ip/{ip_address}',
-            headers={'X-Key': 'MzAzNzE6cDUzQ1pBM2RoRHZXbmdob2JCWmRYNUhoY0IzNXNLcVo='},  # ← Replace with your key
+            headers={'X-Key': IPHUB_API_KEY},
             timeout=5
         )
         
         if iphub_response.ok:
-            iphub_data = iphub_response.json()
-            block_value = iphub_data.get('block', 0)
+            data = iphub_response.json()
             
-            # 0 = Residential/safe, 1 = VPN/proxy, 2 = Datacenter/hosting
+            # Get country code
+            result['country'] = data.get('countryCode', 'Unknown')
+            
+            # Get ASN
+            result['asn'] = str(data.get('asn', '0'))
+            
+            # Check VPN/Datacenter
+            block_value = data.get('block', 0)
             if block_value in [1, 2]:
                 result['is_vpn'] = True
                 vpn_type = 'VPN/Proxy' if block_value == 1 else 'Datacenter'
                 print(f"🚨 {vpn_type} detected for {ip_address}")
             else:
                 print(f"✓ Residential IP: {ip_address}")
+            
+            print(f"🌍 {ip_address}: {result['country']}, ASN: {result['asn']}, VPN: {result['is_vpn']}")
+        else:
+            print(f"❌ IPHub returned status {iphub_response.status_code}")
                 
     except Exception as e:
-        print(f"❌ IPHub error: {type(e).__name__}")
-    
-    print(f"🌍 {ip_address}: {result['country']}, ASN: {result['asn']}, VPN: {result['is_vpn']}")
+        print(f"❌ IPHub error: {type(e).__name__}: {str(e)}")
     
     return result
-
-
 
 
 def is_vpn_or_datacenter(asn):
