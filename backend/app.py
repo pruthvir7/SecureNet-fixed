@@ -326,20 +326,7 @@ def api_login():
         
         # Get REAL client IP and location from backend
         client_ip = get_client_ip()
-        backend_network_info = get_ip_location(client_ip)
-
-# Check for VPN/datacenter
-        if backend_network_info.get('is_vpn'):
-            edns_boost = 2  # Initialize first
-            print(f"⚠️ VPN/Proxy detected via IPHub")
-            edns_boost += 2  # Extra penalty for VPN
-        elif is_vpn_or_datacenter(backend_network_info['asn']):
-            print(f"⚠️ VPN/datacenter ASN detected: {backend_network_info['asn']}")
-            edns_boost = 2  # Initialize and set
-            edns_boost += 1
-        else:
-            edns_boost = 0  # Initialize for normal IPs
-        
+        backend_network_info = get_ip_location(client_ip)  # Now includes 'is_vpn'
         
         # Merge frontend and backend network info
         frontend_network_info = data.get('network_info', {})
@@ -352,14 +339,27 @@ def api_login():
         
         print(f"🌍 Login from: {network_info['country']} | IP: {network_info['ip_address']}")
         
+        # Initialize edns_boost
+        edns_boost = 0
         
-        # Safe access with multiple possible keys
+        # EDNS threat check
+        edns_result = edns_layer.check_login_security(network_info['ip_address'], username)
         threats_detected = (
             edns_result.get('threats_detected', False) or 
             edns_result.get('threat_detected', False) or
             len(edns_result.get('threats', [])) > 0
         )
         
+        if threats_detected:
+            edns_boost += 2
+            print(f"⚠️ EDNS threat detected")
+        
+        # VPN detection from IPHub
+        if backend_network_info.get('is_vpn'):
+            edns_boost += 2
+            print(f"🚨 VPN/Proxy detected via IPHub")
+        
+        print(f"Final EDNS boost: {edns_boost}")
         
         # Authentication with REAL network data
         login_data = {
@@ -496,6 +496,7 @@ def api_login():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 
 def generate_otp():
     """Generate 6-digit OTP."""
