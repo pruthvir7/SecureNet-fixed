@@ -76,15 +76,24 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"]
 )
 
-# Initialize components
-auth_engine = AuthenticationEngine()
-edns_layer = EDNSSecurityLayer()
+# Initialize database first
 db = DatabaseManager(
     host='securenet-securenet1.c.aivencloud.com',
     user='avnadmin',
-    password='AVNS_DzruYfuj_BgF2aD1K9c',  # Change this!
-    database='defaultdb', port=10675
+    password='AVNS_DzruYfujBgF2aD1K9c',
+    database='defaultdb',
+    port=10675
 )
+
+# Initialize auth engine with database
+auth_engine = AuthenticationEngine(model_dir='models/securenet_model_all5_20251118_190557', db_manager=db)
+edns_layer = EDNSSecurityLayer()
+
+# Store db reference for routes
+app.config['DB'] = db
+
+edns_layer = EDNSSecurityLayer()
+
 app.config['DB'] = db
 app.register_blueprint(admin_bp)
 # =====================================================================
