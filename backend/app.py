@@ -331,6 +331,7 @@ def api_login():
         
         # EDNS threat check
         edns_result = edns_layer.check_login_security(network_info['ip_address'], username)
+        print(f"🔍 EDNS Result Details: {json.dumps(edns_result, indent=2)}")
         threats_detected = (
             edns_result.get('threats_detected', False) or 
             edns_result.get('threat_detected', False) or
