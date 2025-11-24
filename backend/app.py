@@ -99,50 +99,39 @@ def get_client_ip():
     return request.remote_addr
 
 def get_ip_location(ip_address):
-    """Get location from IP using backend."""
-    # Skip localhost/dev IPs
-    if ip_address in ['127.0.0.1', '::1', 'localhost', '0.0.0.0']:
-        return {
-            'country': 'US',
-            'asn': '0',
-            'ip_address': ip_address
-        }
+    """Get location from IP using ipinfo.io"""
+    # Skip localhost/private IPs
+    if ip_address in ['127.0.0.1', '::1', 'localhost', '0.0.0.0'] or \
+       ip_address.startswith(('192.168.', '10.', '172.')):
+        return {'country': 'US', 'asn': '0', 'ip_address': ip_address}
     
     try:
-        response = requests.get(f'https://ipapi.co/{ip_address}/json/', timeout=5)
-        
-        # Check for rate limit or errors
-        if response.status_code == 429:
-            print(f"❌ ipapi.co rate limit hit for {ip_address}")
-            return {
-                'country': 'Unknown',
-                'asn': '0',
-                'ip_address': ip_address
-            }
+        response = requests.get(
+            f'https://ipinfo.io/{ip_address}/json',
+            timeout=10
+        )
         
         if response.ok:
             data = response.json()
             
-            # Log what we got (remove after debugging)
-            print(f"🌍 Geolocation for {ip_address}: {data.get('country_code', 'N/A')}, ASN: {data.get('asn', 'N/A')}")
+            # ipinfo.io returns 'org' with ASN like "AS15169 Google LLC"
+            org = data.get('org', 'AS0')
+            asn = org.split()[0].replace('AS', '') if org.startswith('AS') else '0'
+            
+            country = data.get('country', 'Unknown')
+            
+            print(f"🌍 ipinfo.io: {ip_address} → {country}, ASN: {asn}")
             
             return {
-                'country': data.get('country_code', 'Unknown'),  # Don't default to 'US'
-                'asn': str(data.get('asn', '0')).replace('AS', ''),
+                'country': country,
+                'asn': asn,
                 'ip_address': ip_address
             }
-        else:
-            print(f"❌ ipapi.co error {response.status_code} for {ip_address}")
-            
     except Exception as e:
-        print(f"❌ Geolocation exception for {ip_address}: {e}")
+        print(f"❌ ipinfo.io error for {ip_address}: {e}")
     
-    # Fallback: Don't hide failures with 'US'
-    return {
-        'country': 'Unknown',
-        'asn': '0',
-        'ip_address': ip_address
-    }
+    return {'country': 'Unknown', 'asn': '0', 'ip_address': ip_address}
+
 
 def is_vpn_or_datacenter(asn):
     """Check if ASN belongs to known VPN/hosting providers."""
