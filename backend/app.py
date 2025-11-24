@@ -99,46 +99,75 @@ def get_client_ip():
     return request.remote_addr
 
 def get_ip_location(ip_address):
-    """Get location from IP using ipinfo.io"""
+    """Get location from IP using ipinfo.io + IPHub VPN detection"""
+    import urllib.request
+    import json
+    
     # Skip localhost/private IPs
     if ip_address in ['127.0.0.1', '::1', 'localhost', '0.0.0.0'] or \
        ip_address.startswith(('192.168.', '10.', '172.')):
-        return {'country': 'US', 'asn': '0', 'ip_address': ip_address}
+        return {
+            'country': 'US',
+            'asn': '0',
+            'ip_address': ip_address,
+            'is_vpn': False
+        }
     
+    result = {
+        'country': 'Unknown',
+        'asn': '0',
+        'ip_address': ip_address,
+        'is_vpn': False
+    }
+    
+    # Get geolocation from ipinfo.io
     try:
-        import requests as req  # Use alias to avoid conflicts
+        url = f'https://ipinfo.io/{ip_address}/json'
+        req = urllib.request.Request(url, headers={'Accept': 'application/json'})
         
-        resp = req.get(
-            f'https://ipinfo.io/{ip_address}/json',
-            timeout=5,
-            headers={'Accept': 'application/json'}
-        )
-        
-        if resp.status_code == 200:
-            data = resp.json()
+        with urllib.request.urlopen(req, timeout=5) as response:
+            data = json.loads(response.read().decode())
             
-            org = data.get('org', 'AS0')
+            org = data.get('org', '')
             asn = '0'
             if org and org.startswith('AS'):
                 asn = org.split()[0].replace('AS', '')
             
-            country = data.get('country', 'Unknown')
+            result['country'] = data.get('country', 'Unknown')
+            result['asn'] = asn
             
-            print(f"🌍 Location: {country}, ASN: {asn}")
-            
-            return {
-                'country': country,
-                'asn': asn,
-                'ip_address': ip_address
-            }
-        else:
-            print(f"❌ ipinfo status: {resp.status_code}")
-            
-    except Exception as ex:
-        # Only print the exception type and message, not the full object
-        print(f"❌ Geolocation error: {type(ex).__name__}: {str(ex)[:100]}")
+    except Exception as e:
+        print(f"❌ ipinfo error: {type(e).__name__}")
     
-    return {'country': 'Unknown', 'asn': '0', 'ip_address': ip_address}
+    # Check for VPN/proxy using IPHub
+    try:
+        import requests
+        
+        iphub_response = requests.get(
+            f'https://v2.api.iphub.info/ip/{ip_address}',
+            headers={'X-Key': 'MzAzNzE6cDUzQ1pBM2RoRHZXbmdob2JCWmRYNUhoY0IzNXNLcVo='},  # ← Replace with your key
+            timeout=5
+        )
+        
+        if iphub_response.ok:
+            iphub_data = iphub_response.json()
+            block_value = iphub_data.get('block', 0)
+            
+            # 0 = Residential/safe, 1 = VPN/proxy, 2 = Datacenter/hosting
+            if block_value in [1, 2]:
+                result['is_vpn'] = True
+                vpn_type = 'VPN/Proxy' if block_value == 1 else 'Datacenter'
+                print(f"🚨 {vpn_type} detected for {ip_address}")
+            else:
+                print(f"✓ Residential IP: {ip_address}")
+                
+    except Exception as e:
+        print(f"❌ IPHub error: {type(e).__name__}")
+    
+    print(f"🌍 {ip_address}: {result['country']}, ASN: {result['asn']}, VPN: {result['is_vpn']}")
+    
+    return result
+
 
 
 
