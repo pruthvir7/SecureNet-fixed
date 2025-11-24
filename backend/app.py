@@ -302,9 +302,7 @@ def api_login():
         backend_network_info = get_ip_location(client_ip)
 
 # Check for VPN/datacenter
-        if is_vpn_or_datacenter(backend_network_info['asn']):
-            print(f"⚠️ VPN/datacenter ASN detected: {backend_network_info['asn']}")
-            edns_boost += 1  # Add extra risk for VPN
+        
         
         # Merge frontend and backend network info
         frontend_network_info = data.get('network_info', {})
@@ -331,6 +329,10 @@ def api_login():
         )
         
         edns_boost = 2 if threats_detected else 0
+
+        if is_vpn_or_datacenter(backend_network_info['asn']):
+            print(f"⚠️ VPN/datacenter ASN detected: {backend_network_info['asn']}")
+            edns_boost += 1  # Add extra risk for VPN
         print(f"EDNS boost: {edns_boost}")
         
         # Authentication with REAL network data
