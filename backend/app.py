@@ -89,11 +89,6 @@ db = DatabaseManager(
 auth_engine = AuthenticationEngine(model_dir='models/securenet_model_all5_20251118_190557', db_manager=db)
 edns_layer = EDNSSecurityLayer()
 
-# Store db reference for routes
-app.config['DB'] = db
-
-edns_layer = EDNSSecurityLayer()
-
 app.config['DB'] = db
 app.register_blueprint(admin_bp)
 # =====================================================================
