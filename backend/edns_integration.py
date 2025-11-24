@@ -153,7 +153,22 @@ class EDNSSecurityLayer:
         if blacklist_threats:
             result['threat_detected'] = True
             result['threats'].extend(blacklist_threats)
-            result['threat_level'] = min(len(blacklist_threats), 3)
+            
+            # Differentiate threat levels based on type
+            threat_level = 0
+            for threat in blacklist_threats:
+                threat_lower = threat.lower()
+                
+                if 'spamhaus' in threat_lower or 'spamcop' in threat_lower:
+                    threat_level += 1  # Minor threat (spam-related)
+                elif 'malware' in threat_lower or 'botnet' in threat_lower:
+                    threat_level += 3  # Critical threat
+                elif 'sorbs' in threat_lower or 'manitu' in threat_lower:
+                    threat_level += 1  # Minor threat
+                else:
+                    threat_level += 2  # Medium threat (unknown blacklist)
+            
+            result['threat_level'] = min(threat_level, 3)  # Cap at 3
             self.stats['threats_detected'] += 1
         
         # 2. TOR Exit Node detection
