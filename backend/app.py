@@ -126,7 +126,7 @@ def get_ip_location(ip_address):
         
         iphub_response = requests.get(
             f'https://v2.api.iphub.info/ip/{ip_address}',
-            headers={'X-Key': IPHUB_API_KEY},
+            headers={'X-Key': 'MzAzNzE6cDUzQ1pBM2RoRHZXbmdob2JCWmRYNUhoY0IzNXNLcVo='},
             timeout=5
         )
         
