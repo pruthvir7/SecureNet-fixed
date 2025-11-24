@@ -100,23 +100,66 @@ def get_client_ip():
 
 def get_ip_location(ip_address):
     """Get location from IP using backend."""
+    # Skip localhost/dev IPs
+    if ip_address in ['127.0.0.1', '::1', 'localhost', '0.0.0.0']:
+        return {
+            'country': 'US',
+            'asn': '0',
+            'ip_address': ip_address
+        }
+    
     try:
-        response = requests.get(f'https://ipapi.co/{ip_address}/json/', timeout=2)
+        response = requests.get(f'https://ipapi.co/{ip_address}/json/', timeout=5)
+        
+        # Check for rate limit or errors
+        if response.status_code == 429:
+            print(f"❌ ipapi.co rate limit hit for {ip_address}")
+            return {
+                'country': 'Unknown',
+                'asn': '0',
+                'ip_address': ip_address
+            }
+        
         if response.ok:
             data = response.json()
+            
+            # Log what we got (remove after debugging)
+            print(f"🌍 Geolocation for {ip_address}: {data.get('country_code', 'N/A')}, ASN: {data.get('asn', 'N/A')}")
+            
             return {
-                'country': data.get('country_code', 'US'),
+                'country': data.get('country_code', 'Unknown'),  # Don't default to 'US'
                 'asn': str(data.get('asn', '0')).replace('AS', ''),
                 'ip_address': ip_address
             }
-    except:
-        pass
+        else:
+            print(f"❌ ipapi.co error {response.status_code} for {ip_address}")
+            
+    except Exception as e:
+        print(f"❌ Geolocation exception for {ip_address}: {e}")
     
+    # Fallback: Don't hide failures with 'US'
     return {
-        'country': 'US',
+        'country': 'Unknown',
         'asn': '0',
         'ip_address': ip_address
     }
+
+def is_vpn_or_datacenter(asn):
+    """Check if ASN belongs to known VPN/hosting providers."""
+    vpn_hosting_asns = [
+        '13335',  # Cloudflare
+        '16509',  # Amazon AWS
+        '14061',  # DigitalOcean
+        '15169',  # Google Cloud
+        '8075',   # Microsoft Azure
+        '36352',  # ColoCrossing
+        '62904',  # Eonix
+        '46606',  # Unified Layer (HostGator)
+        '19318',  # Interserver
+        '20473',  # Choopa (Vultr)
+        # Add more as needed
+    ]
+    return asn in vpn_hosting_asns
 
 
 def generate_token(user_id):
@@ -257,6 +300,11 @@ def api_login():
         # Get REAL client IP and location from backend
         client_ip = get_client_ip()
         backend_network_info = get_ip_location(client_ip)
+
+# Check for VPN/datacenter
+        if is_vpn_or_datacenter(backend_network_info['asn']):
+            print(f"⚠️ VPN/datacenter ASN detected: {backend_network_info['asn']}")
+            edns_boost += 1  # Add extra risk for VPN
         
         # Merge frontend and backend network info
         frontend_network_info = data.get('network_info', {})
