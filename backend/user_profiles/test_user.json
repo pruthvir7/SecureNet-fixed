@@ -1,0 +1,27 @@
+{
+  "user_id": "test_user",
+  "created_at": "2025-11-23T02:42:54.260162",
+  "last_updated": "2025-11-23T02:42:54.261444",
+  "keystroke_baseline": {
+    "avg_timing": 119.43692355340133,
+    "std_timing": 6.187602879049142,
+    "cv_timing": 0.05180644848471972,
+    "consistency": 0.9507452644359097,
+    "speed_proxy": 498.1860896952935
+  },
+  "network_baseline": {
+    "registration_ip": null,
+    "registration_country": "US",
+    "typical_countries": [
+      "US"
+    ],
+    "typical_devices": [
+      "abc123def456chrome"
+    ],
+    "typical_asns": [
+      "0"
+    ],
+    "typical_login_hours": [
+      2
+    ],
+    "registration_time": 

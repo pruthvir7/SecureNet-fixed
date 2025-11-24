@@ -1,0 +1,33 @@
+{
+  "user_id": "ramvel",
+  "created_at": "2025-11-24T13:36:55.712694",
+  "last_updated": "2025-11-24T13:36:55.714352",
+  "keystroke_baseline": {
+    "avg_timing": 245.42,
+    "std_timing": 148.96202066298645,
+    "cv_timing": 0.6069677290197161,
+    "consistency": 0.6222900323020306,
+    "speed_proxy": 243.48672997321648
+  },
+  "network_baseline": {
+    "registration_ip": "119.226.236.129",
+    "registration_country": "IN",
+    "typical_countries": [
+      "IN"
+    ],
+    "typical_devices": [
+      "unknown"
+    ],
+    "typical_asns": [
+      "9583"
+    ],
+    "typical_login_hours": [
+      13
+    ],
+    "registration_time": "2025-11-24T13:36:55.712749",
+    "blacklisted_ips": []
+  },
+  "successful_logins": 0,
+  "failed_attempts": 0,
+  "last_login": null
+}

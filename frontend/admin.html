@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Control Panel - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .admin-container {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        .admin-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-card .stat-value {
+            font-size: 36px;
+            font-weight: 700;
+            color: #667eea;
+            margin: 10px 0;
+        }
+
+        .stat-card .stat-label {
+            color: #6b7280;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-card .stat-change {
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .stat-change.positive {
+            color: #10b981;
+        }
+
+        .stat-change.negative {
+            color: #ef4444;
+        }
+
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+            color: #6b7280;
+        }
+
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .data-table {
+            width: 100%;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .data-table table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            background: #f9fafb;
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .data-table td {
+            padding: 15px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .data-table tr:hover {
+            background: #f9fafb;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .badge.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge.danger {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 5px;
+            transition: all 0.2s;
+        }
+
+        .action-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .action-btn.danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .action-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .chart-container {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <a href="dashboard.html" class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureNet - Admin</span>
+            </a>
+            <div class="nav-menu">
+                <span style="color: white; margin-right: 20px;">
+                    <i class="fas fa-user-shield"></i> 
+                    <span id="adminUsername">Admin</span>
+                </span>
+                <button onclick="adminLogout()" class="btn btn-danger" style="padding: 8px 16px;">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </div>
+    </nav>
+
+
+    <div class="admin-container">
+        <!-- Header -->
+        <div class="admin-header">
+            <div>
+                <h1>Admin Control Panel</h1>
+                <p style="color: #6b7280;">System monitoring and management</p>
+            </div>
+            <button onclick="refreshData()" class="btn btn-primary">
+                <i class="fas fa-sync-alt"></i> Refresh
+            </button>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid" id="statsGrid">
+            <div class="stat-card">
+                <div class="stat-label">Total Users</div>
+                <div class="stat-value" id="totalUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Active Users (7d)</div>
+                <div class="stat-value" id="activeUsers">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Recent Logins (24h)</div>
+                <div class="stat-value" id="recentLogins">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Failed Attempts (24h)</div>
+                <div class="stat-value" id="failedLogins">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">MFA Adoption</div>
+                <div class="stat-value" id="mfaAdoption">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Success Rate</div>
+                <div class="stat-value" id="successRate">-</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('users')">
+                <i class="fas fa-users"></i> Users
+            </div>
+            <div class="tab" onclick="switchTab('logs')">
+                <i class="fas fa-list"></i> Auth Logs
+            </div>
+            <div class="tab" onclick="switchTab('threats')">
+                <i class="fas fa-shield-alt"></i> Threats
+            </div>
+            <div class="tab" onclick="switchTab('config')">
+                <i class="fas fa-cog"></i> Configuration
+            </div>
+        </div>
+
+        <!-- Tab Content -->
+        
+        <!-- Users Tab -->
+        <div id="users-tab" class="tab-content active">
+            <div class="search-box">
+                <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
+            </div>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>MFA</th>
+                            <th>Status</th>
+                            <th>Failed Attempts</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr><td colspan="6" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="logs-tab" class="tab-content">
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>User</th>
+                            <th>Status</th>
+                            <th>Risk Level</th>
+                            <th>IP Address</th>
+                            <th>Country</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <tr><td colspan="6" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Threats Tab -->
+        <div id="threats-tab" class="tab-content">
+            <h3>Suspicious IP Addresses</h3>
+            <div class="data-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>IP Address</th>
+                            <th>Total Attempts</th>
+                            <th>Blocked</th>
+                            <th>Last Attempt</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="threatsTableBody">
+                        <tr><td colspan="5" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Config Tab -->
+        <div id="config-tab" class="tab-content">
+            <div class="chart-container">
+                <h3>Risk Thresholds</h3>
+                <p style="color: #6b7280; margin-bottom: 20px;">Current system configuration</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 30px;">
+                    <div>
+                        <h4>Keystroke Deviation</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                                Minor: <strong>15%</strong>
+                            </li>
+                            <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                                Moderate: <strong>30%</strong>
+                            </li>
+                            <li style="padding: 10px 0;">
+                                High: <strong>50%</strong>
+                            </li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h4>Boost Levels</h4>
+                        <ul style="list-style: none; padding: 0;">
+                            <li style="padding: 10px 0; border-bottom: 1px solid #e5e7eb;">
+                                MFA Trigger: <strong>1.0</strong>
+                            </li>
+                            <li style="padding: 10px 0;">
+                                Block Trigger: <strong>3.0</strong>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        if (!localStorage.getItem('admin_token')) {
+            alert('⚠️ Admin authentication required');
+            window.location.href = 'admin-login.html';
+        }
+        const ADMIN_TOKEN = 'admin_secret_token_2024'; // Match backend
+        const API_BASE = '';
+
+        function adminLogout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('admin_user');
+                window.location.href = 'admin-login.html';
+            }
+        }
+
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Display admin username
+            const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
+            if (adminUser.username) {
+                document.getElementById('adminUsername').textContent = adminUser.username;
+            }
+            loadOverviewStats();
+            loadUsers();
+            loadLogs();
+            loadThreats();
+        });
+
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            event.target.closest('.tab').classList.add('active');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+
+        async function loadOverviewStats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/stats/overview`, {
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                const stats = await response.json();
+                
+                document.getElementById('totalUsers').textContent = stats.total_users;
+                document.getElementById('activeUsers').textContent = stats.active_users;
+                document.getElementById('recentLogins').textContent = stats.recent_logins;
+                document.getElementById('failedLogins').textContent = stats.failed_logins;
+                document.getElementById('mfaAdoption').textContent = stats.mfa_adoption_rate + '%';
+                document.getElementById('successRate').textContent = stats.success_rate + '%';
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/users?per_page=50`, {
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                const data = await response.json();
+                
+                const tbody = document.getElementById('usersTableBody');
+                tbody.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${user.username}</td>
+                        <td>${user.email}</td>
+                        <td><span class="badge ${user.mfa_enabled ? 'success' : 'warning'}">
+                            ${user.mfa_enabled ? 'Enabled' : 'Disabled'}
+                        </span></td>
+                        <td><span class="badge ${user.is_locked ? 'danger' : 'success'}">
+                            ${user.is_locked ? 'Locked' : 'Active'}
+                        </span></td>
+                        <td>${user.failed_attempts}</td>
+                        <td>
+                            ${user.is_locked ? `
+                                <button class="action-btn primary" onclick="unlockUser(${user.id})">
+                                    <i class="fas fa-unlock"></i> Unlock
+                                </button>
+                            ` : ''}
+                            <button class="action-btn danger" onclick="resetMFA(${user.id})">
+                                <i class="fas fa-redo"></i> Reset MFA
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading users:', error);
+            }
+        }
+
+        async function loadLogs() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/logs?per_page=50`, {
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                const data = await response.json();
+                
+                const tbody = document.getElementById('logsTableBody');
+                tbody.innerHTML = '';
+                
+                data.logs.forEach(log => {
+                    const row = document.createElement('tr');
+                    const timestamp = new Date(log.timestamp).toLocaleString();
+                    const riskLevel = log.analysis?.final_risk_level || 'N/A';
+                    const country = log.analysis?.network_info?.country || 'Unknown';
+                    
+                    row.innerHTML = `
+                        <td>${timestamp}</td>
+                        <td>${log.username || 'Unknown'}</td>
+                        <td><span class="badge ${
+                            log.status === 'success' ? 'success' :
+                            log.status === 'blocked' ? 'danger' : 'warning'
+                        }">${log.status}</span></td>
+                        <td><span class="badge ${
+                            riskLevel.includes('Low') ? 'success' :
+                            riskLevel.includes('Medium') ? 'warning' : 'danger'
+                        }">${riskLevel}</span></td>
+                        <td>${log.ip_address}</td>
+                        <td>${country}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading logs:', error);
+            }
+        }
+
+        async function loadThreats() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/threats/ips`, {
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                const ips = await response.json();
+                
+                const tbody = document.getElementById('threatsTableBody');
+                tbody.innerHTML = '';
+                
+                ips.forEach(ip => {
+                    const row = document.createElement('tr');
+                    const lastAttempt = new Date(ip.last_attempt).toLocaleString();
+                    
+                    row.innerHTML = `
+                        <td>${ip.ip_address}</td>
+                        <td>${ip.attempts}</td>
+                        <td><span class="badge danger">${ip.blocked}</span></td>
+                        <td>${lastAttempt}</td>
+                        <td>
+                            <button class="action-btn danger" onclick="blockIP('${ip.ip_address}')">
+                                <i class="fas fa-ban"></i> Blacklist
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading threats:', error);
+            }
+        }
+
+        async function unlockUser(userId) {
+            if (confirm('Unlock this user account?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/admin/users/${userId}/unlock`, {
+                        method: 'POST',
+                        headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                    });
+                    
+                    if (response.ok) {
+                        alert('User unlocked successfully');
+                        loadUsers();
+                    }
+                } catch (error) {
+                    console.error('Error unlocking user:', error);
+                    alert('Failed to unlock user');
+                }
+            }
+        }
+
+        async function resetMFA(userId) {
+            if (confirm('Reset MFA for this user?')) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/admin/users/${userId}/reset-mfa`, {
+                        method: 'POST',
+                        headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                    });
+                    
+                    if (response.ok) {
+                        alert('MFA reset successfully');
+                        loadUsers();
+                    }
+                } catch (error) {
+                    console.error('Error resetting MFA:', error);
+                    alert('Failed to reset MFA');
+                }
+            }
+        }
+
+        function refreshData() {
+            loadOverviewStats();
+            loadUsers();
+            loadLogs();
+            loadThreats();
+        }
+
+        function searchUsers() {
+            // Implement search functionality
+            const search = document.getElementById('userSearch').value;
+            // Add debouncing and call loadUsers with search param
+        }
+    </script>
+</body>
+</html>

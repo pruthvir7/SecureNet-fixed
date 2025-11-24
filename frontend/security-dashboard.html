@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Security Dashboard - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+    <style>
+        .dashboard-container {
+            padding: 2rem;
+            padding-top: 120px;  /* ← ADD THIS - Push content below navbar */
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        
+        .dashboard-header {
+            margin-bottom: 2rem;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 2rem;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+        }
+        
+        .live-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #10b981;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 2rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            background: white;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .stat-icon.success { background: #d1fae5; color: #059669; }
+        .stat-icon.danger { background: #fee2e2; color: #dc2626; }
+        .stat-icon.warning { background: #fef3c7; color: #d97706; }
+        .stat-icon.info { background: #dbeafe; color: #2563eb; }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+        
+        .stat-label {
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .chart-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .chart-card h3 {
+            font-size: 1.125rem;
+            color: #1f2937;
+            margin-bottom: 1rem;
+        }
+        
+        .activity-feed {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .activity-item {
+            display: flex;
+            align-items: start;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        
+        .activity-icon.success { background: #d1fae5; color: #059669; }
+        .activity-icon.danger { background: #fee2e2; color: #dc2626; }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-title {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+        
+        .activity-meta {
+            font-size: 0.875rem;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="index.html" class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureNet</span>
+            </a>
+            <div class="nav-menu">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="security-dashboard.html" class="active">Security Monitor</a>
+                <a href="#" onclick="logout()">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="dashboard-container">
+        <div class="dashboard-header">
+            <h1>Real-Time Security Dashboard</h1>
+            <span class="live-indicator">
+                <span class="live-dot"></span>
+                LIVE
+            </span>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon success">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <div class="stat-value" id="statLoginsToday">0</div>
+                <div class="stat-label">Logins Today</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon danger">
+                    <i class="fas fa-ban"></i>
+                </div>
+                <div class="stat-value" id="statBlockedToday">0</div>
+                <div class="stat-label">Blocked Today</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <div class="stat-value" id="statHighRisk">0</div>
+                <div class="stat-label">High Risk Today</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon info">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div class="stat-value" id="statActiveUsers">0</div>
+                <div class="stat-label">Active Sessions</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-line"></i> Risk Score Timeline</h3>
+                <canvas id="riskChart"></canvas>
+            </div>
+
+            <div class="chart-card">
+                <h3><i class="fas fa-globe"></i> Login Locations</h3>
+                <canvas id="locationChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="activity-feed">
+            <h3 style="margin-bottom: 1rem;"><i class="fas fa-history"></i> Recent Activity</h3>
+            <div id="activityFeed">
+                <div style="text-align: center; color: #9ca3af; padding: 2rem;">
+                    Waiting for activity...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        // Connect to WebSocket
+        const socket = io();
+
+        socket.on('connect', () => {
+            console.log('Connected to real-time dashboard');
+        });
+
+        socket.on('stats_update', (data) => {
+            console.log('Real-time update:', data);
+            updateStats(data.stats);
+            addActivity(data.activity);
+        });
+
+        // Initialize Charts
+        const riskCtx = document.getElementById('riskChart').getContext('2d');
+        const riskChart = new Chart(riskCtx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Risk Score',
+                    data: [],
+                    borderColor: '#ef4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: { display: false }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 3
+                    }
+                }
+            }
+        });
+
+        const locationCtx = document.getElementById('locationChart').getContext('2d');
+        const locationChart = new Chart(locationCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: [
+                        '#3b82f6',
+                        '#10b981',
+                        '#f59e0b',
+                        '#ef4444',
+                        '#8b5cf6'
+                    ]
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: true
+            }
+        });
+
+        // Load initial data
+        async function loadDashboardData() {
+            try {
+                // Load stats
+                const statsRes = await fetch('/api/dashboard/stats');
+                const statsData = await statsRes.json();
+                
+                if (statsData.success) {
+                    document.getElementById('statLoginsToday').textContent = statsData.stats.logins_today;
+                    document.getElementById('statBlockedToday').textContent = statsData.stats.blocked_today;
+                    document.getElementById('statHighRisk').textContent = statsData.stats.high_risk_today;
+                    document.getElementById('statActiveUsers').textContent = statsData.stats.active_sessions;
+                }
+
+                // Load recent activity
+                const activityRes = await fetch('/api/dashboard/recent-activity');
+                const activityData = await activityRes.json();
+                
+                if (activityData.success && activityData.activities.length > 0) {
+                    const feed = document.getElementById('activityFeed');
+                    feed.innerHTML = '';
+                    activityData.activities.reverse().forEach(activity => {
+                        addActivity(activity, false);
+                    });
+                }
+
+                // Load locations
+                const locRes = await fetch('/api/dashboard/threat-map');
+                const locData = await locRes.json();
+                
+                if (locData.success) {
+                    updateLocationChart(locData.locations);
+                }
+
+                // Load risk timeline
+                const timelineRes = await fetch('/api/dashboard/risk-timeline');
+                const timelineData = await timelineRes.json();
+                
+                if (timelineData.success) {
+                    updateRiskChart(timelineData.timeline);
+                }
+
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+            }
+        }
+
+        function updateStats(stats) {
+            document.getElementById('statLoginsToday').textContent = stats.logins_today;
+            document.getElementById('statBlockedToday').textContent = stats.blocked_today;
+            document.getElementById('statHighRisk').textContent = stats.high_risk_today;
+        }
+
+        function addActivity(activity, prepend = true) {
+            const feed = document.getElementById('activityFeed');
+            
+            const item = document.createElement('div');
+            item.className = 'activity-item';
+            
+            const iconClass = activity.type === 'login_success' ? 'success' : 'danger';
+            const icon = activity.type === 'login_success' ? 'check' : 'times';
+            
+            item.innerHTML = `
+                <div class="activity-icon ${iconClass}">
+                    <i class="fas fa-${icon}"></i>
+                </div>
+                <div class="activity-content">
+                    <div class="activity-title">
+                        ${activity.username || 'User'} - ${activity.type.replace('_', ' ').toUpperCase()}
+                    </div>
+                    <div class="activity-meta">
+                        <i class="fas fa-map-marker-alt"></i> ${activity.country || 'Unknown'}
+                        <i class="fas fa-network-wired" style="margin-left: 1rem;"></i> ${activity.ip_address || '0.0.0.0'}
+                        <span style="margin-left: 1rem;">${new Date(activity.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                </div>
+            `;
+            
+            if (prepend) {
+                feed.insertBefore(item, feed.firstChild);
+            } else {
+                feed.appendChild(item);
+            }
+            
+            // Keep only last 20
+            while (feed.children.length > 20) {
+                feed.removeChild(feed.lastChild);
+            }
+        }
+
+        function updateLocationChart(locations) {
+            const countryCounts = {};
+            locations.forEach(loc => {
+                countryCounts[loc.country] = (countryCounts[loc.country] || 0) + 1;
+            });
+            
+            locationChart.data.labels = Object.keys(countryCounts);
+            locationChart.data.datasets[0].data = Object.values(countryCounts);
+            locationChart.update();
+        }
+
+        function updateRiskChart(timeline) {
+            const labels = timeline.map(t => new Date(t.timestamp).toLocaleTimeString());
+            const scores = timeline.map(t => t.score);
+            
+            riskChart.data.labels = labels;
+            riskChart.data.datasets[0].data = scores;
+            riskChart.update();
+        }
+
+        // Load data on page load
+        loadDashboardData();
+
+        // Refresh every 30 seconds
+        setInterval(loadDashboardData, 30000);
+    </script>
+</body>
+</html>

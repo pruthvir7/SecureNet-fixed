@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="auth-page">
+    <!-- Navigation -->
+    <nav class="navbar navbar-auth">
+        <div class="container">
+            <a href="index.html" class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureNet</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Register Section -->
+    <section class="auth-section">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1>Create Your Account</h1>
+                    <p>Secure your digital identity with behavioral biometrics</p>
+                </div>
+
+                <!-- Registration Steps -->
+                <div class="progress-steps">
+                    <div class="step active" id="step1Indicator">
+                        <div class="step-number">1</div>
+                        <span>Account Info</span>
+                    </div>
+                    <div class="step" id="step2Indicator">
+                        <div class="step-number">2</div>
+                        <span>Biometric Setup</span>
+                    </div>
+                    <div class="step" id="step3Indicator">
+                        <div class="step-number">3</div>
+                        <span>Confirmation</span>
+                    </div>
+                </div>
+
+                <!-- Step 1: Account Information -->
+                <form id="registerForm" class="auth-form">
+                    <div id="step1" class="form-step active">
+                        <div class="form-group">
+                            <label for="username">
+                                <i class="fas fa-user"></i> Username
+                            </label>
+                            <input 
+                                type="text" 
+                                id="username" 
+                                name="username" 
+                                required 
+                                placeholder="Choose a unique username"
+                                minlength="3"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">
+                                <i class="fas fa-envelope"></i> Email Address
+                            </label>
+                            <input 
+                                type="email" 
+                                id="email" 
+                                name="email" 
+                                required 
+                                placeholder="your.email@example.com"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="password">
+                                <i class="fas fa-lock"></i> Password
+                            </label>
+                            <input 
+                                type="password" 
+                                id="password" 
+                                name="password" 
+                                required 
+                                placeholder="Create a strong password"
+                                minlength="8"
+                            >
+                            <div class="password-strength">
+                                <div class="strength-bar" id="strengthBar"></div>
+                            </div>
+                            <small class="form-hint" id="passwordHint">
+                                Use at least 8 characters with letters and numbers
+                            </small>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">
+                                <i class="fas fa-lock"></i> Confirm Password
+                            </label>
+                            <input 
+                                type="password" 
+                                id="confirmPassword" 
+                                name="confirmPassword" 
+                                required 
+                                placeholder="Re-enter your password"
+                            >
+                        </div>
+
+                        <button type="button" class="btn btn-primary btn-block" onclick="nextStep(2)">
+                            <i class="fas fa-arrow-right"></i> Continue to Biometric Setup
+                        </button>
+                    </div>
+
+                    <!-- Step 2: Biometric Baseline -->
+                    <div id="step2" class="form-step">
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle"></i>
+                            <span>Type your password 3 times to establish your unique typing pattern</span>
+                        </div>
+
+                        <div class="biometric-setup-grid">
+                            <!-- Trial 1 -->
+                            <div class="trial-card" id="trial1">
+                              <div class="trial-header">
+                                <i class="fas fa-keyboard"></i>
+                                <span>Trial 1 of 3</span>
+                              </div>
+                              <input 
+                                type="password" 
+                                id="bioPassword1" 
+                                class="trial-input"
+                                placeholder="Type your password naturally"
+                              >
+                              <div class="trial-status" id="status1">
+                                <i class="fas fa-clock"></i> Pending
+                              </div>
+                            </div>
+                            <!-- Trial 2 -->
+                            <div class="trial-card" id="trial2">
+                              <div class="trial-header">
+                                <i class="fas fa-keyboard"></i>
+                                <span>Trial 2 of 3</span>
+                              </div>
+                              <input 
+                                type="password" 
+                                id="bioPassword2" 
+                                class="trial-input"
+                                placeholder="Type your password again"
+                                disabled
+                              >
+                              <div class="trial-status" id="status2">
+                                <i class="fas fa-clock"></i> Pending
+                              </div>
+                            </div>
+                            <!-- Trial 3 -->
+                            <div class="trial-card" id="trial3">
+                              <div class="trial-header">
+                                <i class="fas fa-keyboard"></i>
+                                <span>Trial 3 of 3</span>
+                              </div>
+                              <input 
+                                type="password" 
+                                id="bioPassword3" 
+                                class="trial-input"
+                                placeholder="Type your password one more time"
+                                disabled
+                              >
+                              <div class="trial-status" id="status3">
+                                <i class="fas fa-clock"></i> Pending
+                              </div>
+                            </div>
+                          </div>
+                          
+
+                        <div class="biometric-results" id="biometricResults" style="display: none;">
+                            <h4><i class="fas fa-fingerprint"></i> Your Typing Profile</h4>
+                            <div class="result-item">
+                                <span>Average Speed:</span>
+                                <strong id="avgSpeed">-</strong>
+                            </div>
+                            <div class="result-item">
+                                <span>Consistency:</span>
+                                <strong id="consistency">-</strong>
+                            </div>
+                            <div class="result-item">
+                                <span>Pattern Strength:</span>
+                                <strong id="patternStrength">-</strong>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-outline" onclick="nextStep(1)">
+                                <i class="fas fa-arrow-left"></i> Back
+                            </button>
+                            <button type="button" class="btn btn-primary" id="completeSetupBtn" onclick="nextStep(3)" disabled>
+                                <i class="fas fa-check"></i> Complete Setup
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Confirmation -->
+                    <div id="step3" class="form-step">
+                        <div class="success-animation" id="successAnimation" style="display: none;">
+                            <div class="checkmark-circle">
+                                <i class="fas fa-check"></i>
+                            </div>
+                            <h3>Registration Successful!</h3>
+                            <p>Your behavioral biometric profile has been created</p>
+                        </div>
+
+                        <div id="registrationProcess">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle"></i>
+                                <span id="processMessage">Ready to create your secure profile</span>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary btn-block" id="registerButton">
+                                <i class="fas fa-user-plus"></i> Complete Registration
+                            </button>
+                        </div>
+
+                        <div id="errorAlert" class="alert alert-error" style="display: none;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <span id="errorMessage"></span>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="auth-footer">
+                    <p>Already have an account? <a href="login.html">Login here</a></p>
+                </div>
+            </div>
+
+            <!-- Security Info Sidebar -->
+            <div class="security-info">
+                <h3><i class="fas fa-shield-check"></i> Why Behavioral Biometrics?</h3>
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-user-secret"></i>
+                    </div>
+                    <div class="info-content">
+                        <h4>Invisible Security</h4>
+                        <p>Your typing pattern is unique like a fingerprint, providing seamless protection</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="info-content">
+                        <h4>Imposter Detection</h4>
+                        <p>Even if someone knows your password, they can't mimic your typing rhythm</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="info-content">
+                        <h4>Adaptive Learning</h4>
+                        <p>Your profile improves over time, adapting to your natural behavior changes</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="js/keystroke.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        let keystrokeData = {
+            trial1: [],
+            trial2: [],
+            trial3: []
+        };
+        let originalPassword = '';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('password').addEventListener('input', checkPasswordStrength);
+        });
+
+        // Navigate between steps
+        function nextStep(step) {
+            if (step === 2 && !validateStep1()) {
+                return;
+            }
+            
+            if (step === 2) {
+                originalPassword = document.getElementById('password').value;
+                keystrokeData = { trial1: [], trial2: [], trial3: [] };
+                
+                setTimeout(() => {
+                    document.getElementById('bioPassword1').focus();
+                    setupTrialListeners();
+                }, 100);
+            }
+            
+            document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+            
+            document.getElementById('step' + step).classList.add('active');
+            document.getElementById('step' + step + 'Indicator').classList.add('active');
+        }
+
+        function setupTrialListeners() {
+            setupTrial('bioPassword1', 'status1', 'trial1', 'bioPassword2');
+            setupTrial('bioPassword2', 'status2', 'trial2', 'bioPassword3');
+            setupTrial('bioPassword3', 'status3', 'trial3', null);
+        }
+
+        function setupTrial(inputId, statusId, trialKey, nextInputId) {
+            const input = document.getElementById(inputId);
+            
+            input.addEventListener('focus', function() {
+                resetKeystrokeCapture();
+                initKeystrokeCapture(input);
+            });
+            
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    input.blur();
+                }
+            });
+            
+            input.addEventListener('blur', function() {
+                const enteredPassword = this.value;
+                const timings = getKeystrokeTimings();
+                
+                if (!enteredPassword) {
+                    document.getElementById(statusId).innerHTML = 
+                        '<i class="fas fa-clock"></i> Pending';
+                    return;
+                }
+                
+                if (enteredPassword !== originalPassword) {
+                    document.getElementById(statusId).innerHTML = 
+                        '<i class="fas fa-times-circle" style="color: #ef4444"></i> Wrong password';
+                    this.value = '';
+                    setTimeout(() => {
+                        document.getElementById(statusId).innerHTML = 
+                            '<i class="fas fa-clock"></i> Pending';
+                    }, 2000);
+                    return;
+                }
+                
+                if (timings.length < 3) {
+                    document.getElementById(statusId).innerHTML = 
+                        '<i class="fas fa-exclamation-circle" style="color: #f59e0b"></i> Too fast';
+                    this.value = '';
+                    setTimeout(() => {
+                        document.getElementById(statusId).innerHTML = 
+                            '<i class="fas fa-clock"></i> Pending';
+                    }, 2000);
+                    return;
+                }
+                
+                keystrokeData[trialKey] = timings;
+                document.getElementById(statusId).innerHTML = 
+                    `<i class="fas fa-check-circle" style="color: #10b981"></i> Captured (${timings.length} keys)`;
+                
+                if (nextInputId) {
+                    document.getElementById(nextInputId).disabled = false;
+                    setTimeout(() => document.getElementById(nextInputId).focus(), 500);
+                } else {
+                    setTimeout(completeBiometricSetup, 500);
+                }
+            });
+        }
+
+        function completeBiometricSetup() {
+            const allTimings = [
+                ...keystrokeData.trial1,
+                ...keystrokeData.trial2,
+                ...keystrokeData.trial3
+            ];
+            
+            if (allTimings.length < 9) {
+                alert('Please complete all three typing trials first');
+                return;
+            }
+            
+            const avgSpeed = (allTimings.reduce((a, b) => a + b, 0) / allTimings.length).toFixed(2);
+            const stdDev = Math.sqrt(allTimings.reduce((sq, n) => sq + Math.pow(n - avgSpeed, 2), 0) / allTimings.length).toFixed(2);
+            const consistency = (1 / (1 + stdDev / avgSpeed)).toFixed(2);
+            
+            document.getElementById('avgSpeed').textContent = avgSpeed + ' ms';
+            document.getElementById('consistency').textContent = (consistency * 100).toFixed(0) + '%';
+            document.getElementById('patternStrength').textContent = 
+                consistency > 0.8 ? 'Strong' : consistency > 0.6 ? 'Good' : 'Fair';
+            
+            document.getElementById('biometricResults').style.display = 'block';
+            document.getElementById('completeSetupBtn').disabled = false;
+        }
+
+        function validateStep1() {
+            const username = document.getElementById('username').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            
+            if (username.length < 3) {
+                alert('Username must be at least 3 characters');
+                return false;
+            }
+            
+            if (!email.includes('@')) {
+                alert('Please enter a valid email');
+                return false;
+            }
+            
+            if (password.length < 8) {
+                alert('Password must be at least 8 characters');
+                return false;
+            }
+            
+            if (password !== confirmPassword) {
+                alert('Passwords do not match');
+                return false;
+            }
+            
+            return true;
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            if (!keystrokeData.trial1.length || !keystrokeData.trial2.length || !keystrokeData.trial3.length) {
+                alert('Please complete all three typing trials before registering');
+                return;
+            }
+            
+            const registerButton = document.getElementById('registerButton');
+            registerButton.disabled = true;
+            registerButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+            
+            const allTimings = [
+                ...keystrokeData.trial1,
+                ...keystrokeData.trial2,
+                ...keystrokeData.trial3
+            ];
+            
+            try {
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: document.getElementById('username').value,
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                        keystroke_timings: allTimings,
+                        network_info: await getNetworkInfo()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok && result.success) {
+                    document.getElementById('registrationProcess').style.display = 'none';
+                    document.getElementById('successAnimation').style.display = 'block';
+                    
+                    setTimeout(() => {
+                        window.location.href = 'login.html';
+                    }, 2000);
+                } else {
+                    showError(result.error || 'Registration failed');
+                    registerButton.disabled = false;
+                    registerButton.innerHTML = '<i class="fas fa-user-plus"></i> Complete Registration';
+                }
+                
+            } catch (error) {
+                showError('Connection error. Is the server running?');
+                registerButton.disabled = false;
+                registerButton.innerHTML = '<i class="fas fa-user-plus"></i> Complete Registration';
+            }
+        });
+
+        function checkPasswordStrength() {
+            const password = document.getElementById('password').value;
+            const strengthBar = document.getElementById('strengthBar');
+            const hint = document.getElementById('passwordHint');
+            
+            let strength = 0;
+            if (password.length >= 8) strength += 25;
+            if (password.length >= 12) strength += 25;
+            if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 25;
+            if (/[0-9]/.test(password)) strength += 15;
+            if (/[^a-zA-Z0-9]/.test(password)) strength += 10;
+            
+            strengthBar.style.width = strength + '%';
+            strengthBar.className = 'strength-bar ' + 
+                (strength < 40 ? 'weak' : strength < 70 ? 'medium' : 'strong');
+            
+            if (strength < 40) {
+                hint.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Weak password';
+            } else if (strength < 70) {
+                hint.innerHTML = '<i class="fas fa-info-circle"></i> Good password';
+            } else {
+                hint.innerHTML = '<i class="fas fa-check-circle"></i> Strong password!';
+            }
+        }
+
+        function showError(message) {
+            const errorAlert = document.getElementById('errorAlert');
+            document.getElementById('errorMessage').textContent = message;
+            errorAlert.style.display = 'flex';
+        }
+
+        async function getNetworkInfo() {
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch('https://ipapi.co/json/', {
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                
+                const data = await response.json();
+                return {
+                    country: data.country_code || 'US',
+                    asn: data.asn?.replace('AS', '') || '0',
+                    ip_address: data.ip || '127.0.0.1'
+                };
+            } catch {
+                return {
+                    country: 'US',
+                    asn: '0',
+                    ip_address: '127.0.0.1'
+                };
+            }
+        }
+    </script>
+</body>
+</html>

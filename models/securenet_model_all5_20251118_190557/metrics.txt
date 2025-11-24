@@ -1,0 +1,25 @@
+Test Loss: 0.047327
+Test Accuracy: 0.985641
+
+Classification Report:
+              precision    recall  f1-score   support
+
+    Low Risk       0.96      0.94      0.95      6128
+ Medium Risk       1.00      0.99      0.99     67124
+   High Risk       0.64      0.98      0.78      1477
+
+    accuracy                           0.99     74729
+   macro avg       0.87      0.97      0.91     74729
+weighted avg       0.99      0.99      0.99     74729
+
+
+Confusion Matrix:
+[[ 5782     0   346]
+ [  236 66423   465]
+ [   26     0  1451]]
+
+Class Weights Used:
+{0: 4.0647830850642235, 1: 0.37110178924495013, 2: 16.861715501402184}
+
+Training Samples: 174367
+Test Samples: 74729

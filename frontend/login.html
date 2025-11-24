@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Device Fingerprinting Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@fingerprintjs/fingerprintjs@3/dist/fp.min.js"></script>
+</head>
+<body class="auth-page">
+    <!-- Navigation -->
+    <nav class="navbar navbar-auth">
+        <div class="container">
+            <a href="index.html" class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureNet</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Login Section -->
+    <section class="auth-section">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1>Welcome Back</h1>
+                    <p>Your typing pattern is being analyzed for security</p>
+                </div>
+
+                <!-- Security Status -->
+                <div class="security-status">
+                    <div class="status-item">
+                        <i class="fas fa-keyboard"></i>
+                        <span>Keystroke Analysis: <strong id="keystrokeStatus">Active</strong></span>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-network-wired"></i>
+                        <span>Device ID: <strong id="deviceStatus">Detecting...</strong></span>
+                    </div>
+                    <div class="status-item">
+                        <i class="fas fa-brain"></i>
+                        <span>ML Model: <strong id="mlStatus">Ready</strong></span>
+                    </div>
+                </div>
+
+                <!-- Login Form -->
+                <form id="loginForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="username">
+                            <i class="fas fa-user"></i> Username
+                        </label>
+                        <input 
+                            type="text" 
+                            id="username" 
+                            name="username" 
+                            required 
+                            placeholder="Enter your username"
+                            autocomplete="username"
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">
+                            <i class="fas fa-lock"></i> Password
+                        </label>
+                        <input 
+                            type="password" 
+                            id="password" 
+                            name="password" 
+                            required 
+                            placeholder="Enter your password"
+                            autocomplete="current-password"
+                        >
+                        <small class="form-hint">
+                            <i class="fas fa-info-circle"></i> Type naturally - we're analyzing your unique pattern
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="loginButton">
+                        <i class="fas fa-sign-in-alt"></i> Login Securely
+                    </button>
+                </form>
+
+                <div class="form-footer">
+                    <a href="#" class="link">Forgot password?</a>
+                </div>
+
+                <!-- Security Analysis (shown after login attempt) -->
+                <div id="securityAnalysis" class="security-analysis" style="display: none;">
+                    <h3>Security Analysis</h3>
+                    
+                    <div class="analysis-row">
+                        <span>Risk Level:</span>
+                        <strong id="riskLevel">-</strong>
+                    </div>
+                    
+                    <div class="analysis-row">
+                        <span>ML Prediction:</span>
+                        <strong id="mlPrediction">-</strong>
+                    </div>
+                    
+                    <div class="analysis-row">
+                        <span>Behavioral Match:</span>
+                        <strong id="behavioralMatch">-</strong>
+                    </div>
+                    
+                    <div class="analysis-row">
+                        <span>EDNS Status:</span>
+                        <strong id="ednsResult">-</strong>
+                    </div>
+                </div>
+
+                <div class="footer-card">
+                    <div class="card-content">
+                      <p class="register-text">
+                        Don't have an account?
+                        <a href="register.html">Register now</a>
+                      </p>
+                      <hr class="footer-divider">
+                      <p class="admin-link">
+                        <a href="admin-login.html">
+                          <i class="fas fa-shield-alt"></i> Admin Access
+                        </a>
+                      </p>
+                    </div>
+                </div>
+                  
+            </div>
+
+            <!-- Security Info Sidebar -->
+            <div class="security-info">
+                <h3><i class="fas fa-shield-check"></i> Multi-Layer Security</h3>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-fingerprint"></i>
+                    </div>
+                    <div class="info-content">
+                        <h4>Behavioral Biometrics</h4>
+                        <p>Your unique typing pattern is analyzed in real-time</p>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <div class="info-content">
+                        <h4>Device Fingerprinting</h4>
+                        <p>Each device is uniquely identified for security</p>
+                    </div>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="info-content">
+                        <h4>AI Detection</h4>
+                        <p>98.82% accurate ML model validates each login</p>
+                    </div>
+                </div>
+            </div>         
+        </div>
+    </section>
+
+    <!-- Scripts -->
+    <script src="js/keystroke.js"></script>
+    <script src="js/auth.js"></script>
+    <script>
+        // Initialize device fingerprint on page load
+        let deviceFingerprint = null;
+
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize device fingerprinting
+            try {
+                const fp = await FingerprintJS.load();
+                const result = await fp.get();
+                deviceFingerprint = result.visitorId;
+                document.getElementById('deviceStatus').textContent = deviceFingerprint.substring(0, 8) + '...';
+                console.log('🔍 Device fingerprint:', deviceFingerprint);
+            } catch (error) {
+                console.error('Fingerprint error:', error);
+                deviceFingerprint = 'unknown';
+                document.getElementById('deviceStatus').textContent = 'Unknown';
+            }
+
+            // Initialize keystroke capture
+            const passwordInput = document.getElementById('password');
+            
+            passwordInput.addEventListener('focus', function() {
+                resetKeystrokeCapture();
+                initKeystrokeCapture(passwordInput);
+            });
+            
+            initKeystrokeCapture(passwordInput);
+            
+            // Handle login form submission
+            document.getElementById('loginForm').addEventListener('submit', handleLogin);
+        });
+
+        // Handle login with adaptive MFA
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const loginButton = document.getElementById('loginButton');
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Validate inputs
+            if (!username || !password) {
+                alert('Please enter username and password');
+                return;
+            }
+            
+            // Get keystroke data
+            const keystrokeData = getKeystrokeTimings();
+            console.log('Login attempt - Keystroke count:', keystrokeData.length);
+            
+            // Disable button
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+            
+            try {
+                const response = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        keystroke_timings: keystrokeData,
+                        network_info: await getNetworkInfo()
+                    })
+                });
+                
+                const result = await response.json();
+                
+                // Show security analysis
+                if (result.security_analysis) {
+                    displaySecurityAnalysis(result.security_analysis);
+                }
+                
+                // Handle different response types
+                if (result.success) {
+                    // ========================================
+                    // SUCCESS: Direct login (Low Risk)
+                    // ========================================
+                    localStorage.setItem('auth_token', result.token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    showNotification('✅ Login successful!', 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 500);
+                    
+                } else if (result.mfa_required) {
+                    // ========================================
+                    // MFA REQUIRED: Handle different MFA types
+                    // ========================================
+                    
+                    if (result.mfa_type === 'email') {
+                        // Medium Risk: Email OTP
+                        showNotification(result.message, 'info');
+                        promptEmailOTP(username, result.message);
+                        
+                    } else if (result.mfa_type === 'totp') {
+                        // High Risk: TOTP (Authenticator App)
+                        
+                        if (result.mfa_setup_required) {
+                            // Force MFA setup for high-risk users
+                            if (confirm('⚠️ ' + result.error + '\n\nSet up authenticator app now?')) {
+                                localStorage.setItem('pending_user', JSON.stringify({ username: username }));
+                                window.location.href = 'mfa-setup.html';
+                            } else {
+                                showNotification('MFA setup required to proceed', 'error');
+                            }
+                        } else {
+                            // User has TOTP - redirect to verification
+                            localStorage.setItem('mfa_pending', JSON.stringify({
+                                username: username,
+                                type: 'totp',
+                                timestamp: Date.now()
+                            }));
+                            window.location.href = 'mfa-verify.html';
+                        }
+                    }
+                    
+                } else {
+                    // BLOCKED or WRONG PASSWORD or other error
+                    if (result.error) {
+                        if (result.error.toLowerCase().includes('locked')) {
+                            // Blocked due to multiple failed attempts
+                            showNotification('🚫 Account blocked: ' + result.error, 'error');
+                            alert('Your account is locked due to multiple failed login attempts. Please contact support.');
+                        } else if (result.error.toLowerCase().includes('invalid credentials')) {
+                            // Wrong password
+                            showNotification('❌ Wrong password or username.', 'error');
+                            alert('Wrong username or password. Please try again.');
+                            
+                            // Optionally, you can add a shake effect to the password input
+                            const passInput = document.getElementById('password');
+                            passInput.classList.add('input-error');
+                            setTimeout(() => passInput.classList.remove('input-error'), 400);
+                        } else {
+                            // Other errors
+                            showNotification('❌ ' + result.error, 'error');
+                            alert(result.error);
+                        }
+                    } else {
+                        showNotification('❌ Login failed', 'error');
+                        alert('Login failed. Please try again.');
+                    }
+                    // Reset for retry
+                    resetKeystrokeCapture();
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+                }
+
+                
+            } catch (error) {
+                console.error('Login error:', error);
+                showNotification('Connection error. Please check if the server is running.', 'error');
+                resetKeystrokeCapture();
+            } finally {
+                loginButton.disabled = false;
+                loginButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login Securely';
+            }
+        }
+
+        // Enhanced network info with device fingerprinting
+        async function getNetworkInfo() {
+            try {
+                return {
+                    user_agent: navigator.userAgent,
+                    device_fingerprint: deviceFingerprint || 'unknown',
+                    screen_resolution: `${screen.width}x${screen.height}`,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    language: navigator.language,
+                    platform: navigator.platform,
+                    hardware_concurrency: navigator.hardwareConcurrency,
+                    device_memory: navigator.deviceMemory || 'unknown',
+                    color_depth: screen.colorDepth
+                };
+            } catch (error) {
+                console.error('Network info error:', error);
+                return {
+                    user_agent: navigator.userAgent,
+                    device_fingerprint: deviceFingerprint || 'unknown'
+                };
+            }
+        }
+
+        // Prompt for Email OTP (Medium Risk)
+        function promptEmailOTP(username, message) {
+            const code = prompt(message + '\n\nEnter the 6-digit code:');
+            
+            if (code) {
+                if (code.length !== 6 || !/^\d+$/.test(code)) {
+                    alert('Invalid code format. Please enter a 6-digit number.');
+                    promptEmailOTP(username, message); // Retry
+                    return;
+                }
+                
+                verifyEmailOTP(username, code);
+            } else {
+                showNotification('Verification cancelled', 'warning');
+            }
+        }
+
+        // Verify Email OTP
+        async function verifyEmailOTP(username, code) {
+            const loginButton = document.getElementById('loginButton');
+            loginButton.disabled = true;
+            loginButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+            
+            try {
+                const response = await fetch('/api/mfa/verify-email-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, code })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Success - store token and redirect
+                    localStorage.setItem('auth_token', result.token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    
+                    showNotification('✅ ' + result.message, 'success');
+                    
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1000);
+                } else {
+                    // Failed - retry
+                    showNotification('❌ ' + result.error, 'error');
+                    
+                    if (confirm(result.error + '\n\nTry again?')) {
+                        promptEmailOTP(username, 'Enter the verification code from your email');
+                    }
+                }
+            } catch (error) {
+                console.error('Email OTP verify error:', error);
+                showNotification('Connection error. Please try again.', 'error');
+            } finally {
+                loginButton.disabled = false;
+                loginButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login Securely';
+            }
+        }
+
+        // Display security analysis
+        function displaySecurityAnalysis(analysis) {
+            document.getElementById('securityAnalysis').style.display = 'block';
+            
+            const riskLevel = analysis.final_risk_level || 'N/A';
+            document.getElementById('riskLevel').textContent = riskLevel;
+            document.getElementById('mlPrediction').textContent = analysis.ml_prediction || 'N/A';
+            document.getElementById('behavioralMatch').textContent = analysis.keystroke_deviation || 'N/A';
+            document.getElementById('ednsResult').textContent = 
+                analysis.edns_security?.threat_detected ? '⚠️ Threat Detected' : '✓ Safe';
+            
+            // Color coding for risk level
+            const riskElem = document.getElementById('riskLevel');
+            if (riskLevel.includes('High') || riskLevel.includes('Critical')) {
+                riskElem.style.color = '#ef4444';
+            } else if (riskLevel.includes('Medium')) {
+                riskElem.style.color = '#f59e0b';
+            } else {
+                riskElem.style.color = '#10b981';
+            }
+        }
+
+        // Show notification (simple version)
+        function showNotification(message, type) {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+    </script>
+</body>
+</html>
+

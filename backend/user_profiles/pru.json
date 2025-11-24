@@ -1,0 +1,40 @@
+{
+  "user_id": "pru",
+  "created_at": "2025-11-23T19:21:47.140295",
+  "last_updated": "2025-11-24T23:59:33.458505",
+  "keystroke_baseline": {
+    "avg_timing": 485.88753310071843,
+    "std_timing": 462.1919433854183,
+    "cv_timing": 0.12426664293617108,
+    "consistency": 0.8894687094765772,
+    "speed_proxy": 279.6659545542824
+  },
+  "network_baseline": {
+    "registration_ip": "2406:7400:123:f99f::1002",
+    "registration_country": "IN",
+    "typical_countries": [
+      "IN",
+      "US"
+    ],
+    "typical_devices": [
+      "unknown"
+    ],
+    "typical_asns": [
+      "24309"
+    ],
+    "typical_login_hours": [
+      19,
+      23,
+      9,
+      10,
+      11,
+      13,
+      18
+    ],
+    "registration_time": "2025-11-23T19:21:47.140352",
+    "blacklisted_ips": []
+  },
+  "successful_logins": 19,
+  "failed_attempts": 0,
+  "last_login": "2025-11-24T23:59:33.456988"
+}

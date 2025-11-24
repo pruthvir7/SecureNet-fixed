@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .dashboard {
+            min-height: 100vh;
+            background: var(--bg-secondary);
+        }
+        
+        .dashboard-header {
+            background: white;
+            padding: var(--spacing-xl) 0;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .dashboard-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-primary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+        
+        .dashboard-content {
+            padding: var(--spacing-2xl) 0;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: var(--spacing-xl);
+            margin-bottom: var(--spacing-2xl);
+        }
+        
+        .dashboard-card {
+            background: white;
+            padding: var(--spacing-xl);
+            border-radius: 1rem;
+            box-shadow: var(--shadow-md);
+            margin-bottom: var(--spacing-xl);
+        }
+        
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: var(--spacing-lg);
+        }
+        
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-primary);
+            border-radius: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .card-icon i {
+            color: white;
+            font-size: 1.5rem;
+        }
+        
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .activity-item {
+            padding: var(--spacing-md);
+            border-left: 3px solid var(--border);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .activity-item.success {
+            border-color: var(--success);
+            background: #d1fae5;
+        }
+        
+        .activity-item.warning {
+            border-color: var(--warning);
+            background: #fef3c7;
+        }
+        
+        .activity-item.error {
+            border-color: var(--error);
+            background: #fee2e2;
+        }
+        
+        .security-settings-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 0;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        .mfa-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .mfa-status.enabled {
+            background: #d1fae5;
+            color: #059669;
+        }
+        
+        .mfa-status.disabled {
+            background: #fee2e2;
+            color: #dc2626;
+        }
+    </style>
+</head>
+<body class="dashboard">
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="container">
+            <div class="dashboard-nav">
+                <a href="index.html" class="nav-brand">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>SecureNet</span>
+                </a>
+                <div style="display: flex; align-items: center; gap: 2rem;">
+                    <nav style="display: flex; gap: 1.5rem;">
+                        <a href="dashboard.html" style="color: var(--primary); font-weight: 600; text-decoration: none;">
+                            <i class="fas fa-home"></i> Dashboard
+                        </a>
+                        <a href="security-dashboard.html" style="color: var(--text-secondary); text-decoration: none; transition: color 0.2s;" onmouseover="this.style.color='var(--primary)'" onmouseout="this.style.color='var(--text-secondary)'">
+                            <i class="fas fa-shield-alt"></i> Security Monitor
+                        </a>
+                    </nav>
+                    <div class="user-info">
+                        <div>
+                            <div style="font-weight: 600;" id="userName">Loading...</div>
+                            <div style="font-size: 0.875rem; color: var(--text-secondary);" id="userEmail"></div>
+                        </div>
+                        <div class="user-avatar" id="userAvatar">U</div>
+                        <button class="btn btn-outline" onclick="logout()">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-content">
+        <div class="container">
+            <h1>Welcome Back!</h1>
+            <p style="color: var(--text-secondary); margin-bottom: var(--spacing-2xl);">
+                Your account is protected by behavioral biometrics and EDNS security
+            </p>
+
+            <!-- Stats Grid -->
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Total Logins</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem;">All time</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-sign-in-alt"></i>
+                        </div>
+                    </div>
+                    <div class="card-value" id="totalLogins">-</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Last Login</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem;">Most recent access</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div style="font-size: 1.25rem; font-weight: 600;" id="lastLogin">-</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <div>
+                            <h3>Security Score</h3>
+                            <p style="color: var(--text-secondary); font-size: 0.875rem;">Based on behavior</p>
+                        </div>
+                        <div class="card-icon">
+                            <i class="fas fa-shield-check"></i>
+                        </div>
+                    </div>
+                    <div style="font-size: 2.5rem; font-weight: 700; color: var(--success);">98%</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="dashboard-card">
+                <h2 style="margin-bottom: var(--spacing-lg);">
+                    <i class="fas fa-history"></i> Recent Activity
+                </h2>
+                <div id="activityList">
+                    <div style="text-align: center; padding: var(--spacing-2xl); color: var(--text-secondary);">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 2rem;"></i>
+                        <p>Loading activity...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Security Settings -->
+            <div class="dashboard-card">
+                <h2 style="margin-bottom: 0;">
+                    <i class="fas fa-shield-alt"></i> Security Settings
+                </h2>
+                
+                <div class="security-settings-row">
+                    <div>
+                        <strong>Two-Factor Authentication</strong>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
+                            Add an extra layer of security to your account
+                        </p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <span class="mfa-status disabled" id="mfaStatusBadge">Disabled</span>
+                        <button class="btn btn-primary" id="mfaActionBtn" onclick="toggleMFA()">
+                            <i class="fas fa-key"></i> Enable MFA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script>
+        let currentMFAStatus = false;
+
+        // Load user data
+        document.addEventListener('DOMContentLoaded', async function() {
+            const user = getCurrentUser();
+            
+            if (user) {
+                document.getElementById('userName').textContent = user.username;
+                document.getElementById('userEmail').textContent = user.email;
+                document.getElementById('userAvatar').textContent = user.username.charAt(0).toUpperCase();
+            }
+            
+            // Load profile data
+            try {
+                const profile = await authenticatedFetch('/user/profile');
+                
+                if (profile.success) {
+                    document.getElementById('totalLogins').textContent = profile.profile.successful_logins;
+                    document.getElementById('lastLogin').textContent = 
+                        profile.profile.last_login ? formatTimestamp(profile.profile.last_login) : 'Never';
+                    
+                    // Update MFA status
+                    currentMFAStatus = profile.user.mfa_enabled || false;
+                    updateMFAUI(currentMFAStatus);
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+            
+            // Load activity history
+            try {
+                const history = await authenticatedFetch('/user/auth-history');
+                
+                if (history.success) {
+                    displayActivity(history.history);
+                }
+            } catch (error) {
+                console.error('Error loading history:', error);
+                document.getElementById('activityList').innerHTML = `
+                    <div style="text-align: center; padding: var(--spacing-2xl); color: var(--text-secondary);">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Could not load activity</p>
+                    </div>
+                `;
+            }
+        });
+
+        function updateMFAUI(isEnabled) {
+            const badge = document.getElementById('mfaStatusBadge');
+            const btn = document.getElementById('mfaActionBtn');
+            
+            if (isEnabled) {
+                badge.textContent = 'Enabled';
+                badge.className = 'mfa-status enabled';
+                btn.innerHTML = '<i class="fas fa-times-circle"></i> Disable MFA';
+                btn.className = 'btn btn-outline';
+            } else {
+                badge.textContent = 'Disabled';
+                badge.className = 'mfa-status disabled';
+                btn.innerHTML = '<i class="fas fa-key"></i> Enable MFA';
+                btn.className = 'btn btn-primary';
+            }
+        }
+
+        function toggleMFA() {
+            if (currentMFAStatus) {
+                // Disable MFA
+                if (confirm('Are you sure you want to disable MFA? This will reduce your account security.')) {
+                    disableMFA();
+                }
+            } else {
+                // Enable MFA - redirect to setup
+                window.location.href = 'mfa-setup.html';
+            }
+        }
+
+        async function disableMFA() {
+            const user = getCurrentUser();
+            const password = prompt('Enter your password to confirm:');
+            
+            if (!password) return;
+
+            try {
+                const response = await fetch('/api/mfa/disable', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        username: user.username,
+                        password: password
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showNotification('✅ MFA disabled successfully', 'success');
+                    currentMFAStatus = false;
+                    updateMFAUI(false);
+                } else {
+                    alert('❌ ' + result.error);
+                }
+            } catch (error) {
+                console.error('Disable MFA error:', error);
+                alert('Connection error. Please try again.');
+            }
+        }
+        
+        function displayActivity(history) {
+            const container = document.getElementById('activityList');
+            
+            if (!history || history.length === 0) {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: var(--spacing-2xl); color: var(--text-secondary);">
+                        <i class="fas fa-inbox"></i>
+                        <p>No activity yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = history.map(item => {
+                const statusClass = item.status === 'success' ? 'success' : 
+                                  item.status === 'mfa_required' ? 'warning' : 'error';
+                const icon = item.status === 'success' ? 'check-circle' : 
+                           item.status === 'mfa_required' ? 'exclamation-triangle' : 'times-circle';
+                
+                return `
+                    <div class="activity-item ${statusClass}">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <strong><i class="fas fa-${icon}"></i> ${item.status.toUpperCase()}</strong>
+                            <span style="color: var(--text-secondary);">${formatTimestamp(item.timestamp)}</span>
+                        </div>
+                        <div style="font-size: 0.875rem; color: var(--text-secondary);">
+                            <i class="fas fa-map-marker-alt"></i> ${item.country || 'Unknown'} • 
+                            <i class="fas fa-network-wired"></i> ${item.ip_address || 'Unknown IP'}
+                            ${item.risk_level ? ` • Risk: ${item.risk_level}` : ''}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>

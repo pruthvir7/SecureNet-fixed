@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureNet - Advanced Authentication with EDNS</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureNet</span>
+            </div>
+            <div class="nav-links">
+                <a href="#features">Features</a>
+                <a href="#how-it-works">How It Works</a>
+                <a href="#security">Security</a>
+                <a href="login.html" class="btn-nav">Login</a>
+                <a href="register.html" class="btn-nav btn-primary">Get Started</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h1 class="hero-title">
+                    Next-Generation Authentication
+                    <span class="gradient-text">Powered by AI & EDNS</span>
+                </h1>
+                <p class="hero-subtitle">
+                    SecureNet combines machine learning, behavioral biometrics, and DNS-based security 
+                    to provide the most advanced authentication system available.
+                </p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <div class="stat-value">98.82%</div>
+                        <div class="stat-label">Accuracy</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">&lt;50ms</div>
+                        <div class="stat-label">Response Time</div>
+                    </div>
+                    <div class="stat">
+                        <div class="stat-value">99.9%</div>
+                        <div class="stat-label">Uptime</div>
+                    </div>
+                </div>
+                <div class="hero-cta">
+                    <a href="register.html" class="btn btn-large btn-primary">
+                        <i class="fas fa-rocket"></i> Start Free Trial
+                    </a>
+                    <a href="#how-it-works" class="btn btn-large btn-outline">
+                        <i class="fas fa-play-circle"></i> Watch Demo
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="security-shield">
+                    <div class="shield-layer layer-1"></div>
+                    <div class="shield-layer layer-2"></div>
+                    <div class="shield-layer layer-3"></div>
+                    <div class="shield-icon">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="features">
+        <div class="container">
+            <h2 class="section-title">Comprehensive Security Stack</h2>
+            <p class="section-subtitle">Five layers of protection working in harmony</p>
+            
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>AI-Powered Detection</h3>
+                    <p>Deep learning model trained on 174,000+ samples achieves 98.82% accuracy in threat detection.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Neural network classification</li>
+                        <li><i class="fas fa-check"></i> Real-time risk scoring</li>
+                        <li><i class="fas fa-check"></i> Adaptive learning</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-fingerprint"></i>
+                    </div>
+                    <h3>Behavioral Biometrics</h3>
+                    <p>Analyze unique typing patterns and behavioral characteristics to verify user identity.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Keystroke dynamics analysis</li>
+                        <li><i class="fas fa-check"></i> Typing rhythm detection</li>
+                        <li><i class="fas fa-check"></i> Baseline profiling</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card featured">
+                    <div class="feature-badge">NEW</div>
+                    <div class="feature-icon">
+                        <i class="fas fa-network-wired"></i>
+                    </div>
+                    <h3>EDNS Security Layer</h3>
+                    <p>DNS-based threat intelligence with Extension Mechanisms for DNS (EDNS) optimization.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> DNS blacklist integration</li>
+                        <li><i class="fas fa-check"></i> TOR exit node detection</li>
+                        <li><i class="fas fa-check"></i> 60% latency reduction</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-globe"></i>
+                    </div>
+                    <h3>Geographic Analysis</h3>
+                    <p>Detect suspicious logins from unusual locations and flag geographic anomalies.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> New country detection</li>
+                        <li><i class="fas fa-check"></i> Impossible travel analysis</li>
+                        <li><i class="fas fa-check"></i> VPN/Proxy identification</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3>Bot Detection</h3>
+                    <p>Advanced algorithms identify automated attacks and credential stuffing attempts.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Automated behavior patterns</li>
+                        <li><i class="fas fa-check"></i> Suspicious user agents</li>
+                        <li><i class="fas fa-check"></i> Rate limiting protection</li>
+                    </ul>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-shield-virus"></i>
+                    </div>
+                    <h3>Multi-Factor Protection</h3>
+                    <p>Adaptive MFA triggers based on risk level for seamless yet secure authentication.</p>
+                    <ul class="feature-list">
+                        <li><i class="fas fa-check"></i> Risk-based MFA</li>
+                        <li><i class="fas fa-check"></i> SMS & TOTP support</li>
+                        <li><i class="fas fa-check"></i> Biometric options</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works -->
+    <section id="how-it-works" class="how-it-works">
+        <div class="container">
+            <h2 class="section-title">How SecureNet Works</h2>
+            <p class="section-subtitle">Multi-layered security in milliseconds</p>
+            
+            <div class="process-timeline">
+                <div class="process-step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>User Attempts Login</h3>
+                        <p>Keystroke timing data is captured during password entry, along with network metadata.</p>
+                    </div>
+                </div>
+
+                <div class="process-step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Behavioral Analysis</h3>
+                        <p>Typing patterns are compared against the user's unique baseline profile for deviations.</p>
+                    </div>
+                </div>
+
+                <div class="process-step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>ML Risk Assessment</h3>
+                        <p>Deep learning model processes 19 features and predicts risk level with 98.82% accuracy.</p>
+                    </div>
+                </div>
+
+                <div class="process-step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>EDNS Security Check</h3>
+                        <p>DNS-based threat intelligence identifies malicious IPs, VPNs, and TOR exit nodes.</p>
+                    </div>
+                </div>
+
+                <div class="process-step">
+                    <div class="step-number">5</div>
+                    <div class="step-content">
+                        <h3>Decision Engine</h3>
+                        <p>Risk scores are fused: ALLOW, MFA_REQUIRED, or BLOCK based on total threat level.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Security Stats -->
+    <section id="security" class="security-stats">
+        <div class="container">
+            <h2 class="section-title">Proven Security Performance</h2>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="stat-number">98.82%</div>
+                    <div class="stat-label">Detection Accuracy</div>
+                    <div class="stat-description">Industry-leading ML model performance</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-bolt"></i>
+                    </div>
+                    <div class="stat-number">&lt;50ms</div>
+                    <div class="stat-label">Authentication Time</div>
+                    <div class="stat-description">EDNS optimization reduces latency by 60%</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="stat-number">99.1%</div>
+                    <div class="stat-label">Attack Block Rate</div>
+                    <div class="stat-description">Multi-layer defense stops threats</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-number">0.1%</div>
+                    <div class="stat-label">False Positive Rate</div>
+                    <div class="stat-description">Minimal disruption to legitimate users</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA Section -->
+    <section class="cta">
+        <div class="container">
+            <h2>Ready to Secure Your Platform?</h2>
+            <p>Join thousands of organizations protecting their users with SecureNet</p>
+            <div class="cta-buttons">
+                <a href="register.html" class="btn btn-large btn-white">
+                    <i class="fas fa-rocket"></i> Get Started Free
+                </a>
+                <a href="#contact" class="btn btn-large btn-outline-white">
+                    <i class="fas fa-envelope"></i> Contact Sales
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>SecureNet</span>
+                    <p>Next-generation authentication powered by AI and EDNS</p>
+                </div>
+                <div class="footer-links">
+                    <div class="footer-column">
+                        <h4>Product</h4>
+                        <a href="#features">Features</a>
+                        <a href="#security">Security</a>
+                        <a href="#pricing">Pricing</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Resources</h4>
+                        <a href="#docs">Documentation</a>
+                        <a href="#api">API Reference</a>
+                        <a href="#support">Support</a>
+                    </div>
+                    <div class="footer-column">
+                        <h4>Company</h4>
+                        <a href="#about">About</a>
+                        <a href="#blog">Blog</a>
+                        <a href="#contact">Contact</a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 SecureNet. All rights reserved.</p>
+                <div class="footer-social">
+                    <a href="#"><i class="fab fa-twitter"></i></a>
+                    <a href="#"><i class="fab fa-github"></i></a>
+                    <a href="#"><i class="fab fa-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .admin-login-page {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .admin-card {
+            background: white;
+            padding: 40px;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 100%;
+            max-width: 400px;
+            margin: 20px;
+        }
+
+        .admin-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .admin-header .icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        }
+
+        .admin-header .icon i {
+            font-size: 36px;
+            color: white;
+        }
+
+        .admin-header h1 {
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .admin-header p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        .back-link a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            transition: color 0.2s;
+        }
+
+        .back-link a:hover {
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body class="admin-login-page">
+    <div class="admin-card">
+        <div class="admin-header">
+            <div class="icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h1>Admin Access</h1>
+            <p>Secure authentication required</p>
+        </div>
+
+        <form id="adminLoginForm" class="auth-form">
+            <div class="form-group">
+                <label for="adminUsername">
+                    <i class="fas fa-user-shield"></i> Admin Username
+                </label>
+                <input 
+                    type="text" 
+                    id="adminUsername" 
+                    name="username" 
+                    required 
+                    placeholder="Enter admin username"
+                    autocomplete="username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="adminPassword">
+                    <i class="fas fa-key"></i> Admin Password
+                </label>
+                <input 
+                    type="password" 
+                    id="adminPassword" 
+                    name="password" 
+                    required 
+                    placeholder="Enter admin password"
+                    autocomplete="current-password"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="adminToken">
+                    <i class="fas fa-lock"></i> Admin Token
+                </label>
+                <input 
+                    type="password" 
+                    id="adminToken" 
+                    name="token" 
+                    required 
+                    placeholder="Enter admin access token"
+                >
+                <small class="form-hint">
+                    <i class="fas fa-info-circle"></i> Admin token required for access
+                </small>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" id="adminLoginButton">
+                <i class="fas fa-sign-in-alt"></i> Login as Admin
+            </button>
+        </form>
+
+        <div class="back-link">
+            <a href="login.html">
+                <i class="fas fa-arrow-left"></i> Back to User Login
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '';
+
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const button = document.getElementById('adminLoginButton');
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+            const token = document.getElementById('adminToken').value;
+            
+            button.disabled = true;
+            button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
+            
+            try {
+                // First verify admin credentials
+                const response = await fetch(`${API_BASE}/api/admin/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password,
+                        admin_token: token
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    // Store admin session
+                    localStorage.setItem('admin_token', result.admin_token);
+                    localStorage.setItem('admin_user', JSON.stringify(result.admin));
+                    
+                    alert('✅ Admin authentication successful!');
+                    
+                    // Redirect to admin panel
+                    window.location.href = 'admin.html';
+                } else {
+                    alert('❌ ' + (result.error || 'Admin authentication failed'));
+                }
+                
+            } catch (error) {
+                console.error('Admin login error:', error);
+                alert('Connection error. Please check if the server is running.');
+            } finally {
+                button.disabled = false;
+                button.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login as Admin';
+            }
+        });
+    </script>
+</body>
+</html>

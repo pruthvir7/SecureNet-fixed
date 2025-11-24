@@ -1,0 +1,45 @@
+{
+  "user_id": "final_test_user",
+  "created_at": "2025-11-23T03:03:33.579903",
+  "last_updated": "2025-11-23T03:03:34.324873",
+  "keystroke_baseline": {
+    "avg_timing": 123.8288296243787,
+    "std_timing": 14.98464787151762,
+    "cv_timing": 0.11997423833828808,
+    "consistency": 0.8928776803685284,
+    "speed_proxy": 486.47181513537197
+  },
+  "network_baseline": {
+    "registration_ip": "8.8.8.8",
+    "registration_country": "US",
+    "typical_countries": [
+      "US",
+      "GB",
+      "JP",
+      "DE",
+      "RU",
+      "CN",
+      "IR",
+      "NL"
+    ],
+    "typical_devices": [
+      "desktop_chrome_fp_001",
+      "iphone_safari_fp_004",
+      "laptop_safari_fp_003",
+      "desktop_firefox_fp_002",
+      "work_desktop_fp_006",
+      "sophisticated_bot_fp_999"
+    ],
+    "typical_asns": [
+      "15169"
+    ],
+    "typical_login_hours": [
+      3
+    ],
+    "registration_time": "2025-11-23T03:03:33.579942",
+    "blacklisted_ips": []
+  },
+  "successful_logins": 28,
+  "failed_attempts": 0,
+  "last_login": "2025-11-23T03:03:34.324706"
+}

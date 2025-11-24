@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA Setup - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .mfa-container {
+            max-width: 600px;
+            margin: 4rem auto;
+            padding: 2rem;
+        }
+        
+        .mfa-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        .qr-code {
+            text-align: center;
+            margin: 2rem 0;
+        }
+        
+        .qr-code img {
+            max-width: 250px;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        
+        .backup-codes {
+            background: #f3f4f6;
+            padding: 1.5rem;
+            border-radius: 0.5rem;
+            margin: 2rem 0;
+        }
+        
+        .code-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .backup-code {
+            background: white;
+            padding: 0.75rem;
+            border-radius: 0.25rem;
+            font-family: monospace;
+            font-weight: 600;
+            text-align: center;
+            border: 1px solid #d1d5db;
+        }
+        
+        .step {
+            margin: 1.5rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+        
+        .step::before {
+            content: attr(data-step);
+            position: absolute;
+            left: 0;
+            width: 24px;
+            height: 24px;
+            background: var(--primary);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="mfa-container">
+        <div class="mfa-card">
+            <h1><i class="fas fa-shield-alt"></i> Enable Two-Factor Authentication</h1>
+            <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                Add an extra layer of security to your account
+            </p>
+
+            <div id="setupSteps">
+                <div class="step" data-step="1">
+                    <h3>Scan QR Code</h3>
+                    <p>Use Google Authenticator, Authy, or any TOTP app</p>
+                    <div class="qr-code" id="qrCodeContainer">
+                        <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--primary);"></i>
+                    </div>
+                    <p style="font-size: 0.875rem; color: var(--text-secondary);">
+                        Or enter this code manually: <strong id="secretKey">...</strong>
+                    </p>
+                </div>
+
+                <div class="step" data-step="2">
+                    <h3>Save Backup Codes</h3>
+                    <p>Save these codes in a safe place. You can use them if you lose access to your authenticator app.</p>
+                    <div class="backup-codes">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <strong>Backup Codes</strong>
+                            <button class="btn btn-sm btn-outline" onclick="downloadBackupCodes()">
+                                <i class="fas fa-download"></i> Download
+                            </button>
+                        </div>
+                        <div class="code-grid" id="backupCodes">
+                            <!-- Codes will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="step" data-step="3">
+                    <h3>Verify Setup</h3>
+                    <p>Enter the 6-digit code from your authenticator app</p>
+                    <div class="form-group">
+                        <input 
+                            type="text" 
+                            id="verifyCode" 
+                            placeholder="000000" 
+                            maxlength="6"
+                            style="text-align: center; font-size: 1.5rem; letter-spacing: 0.5rem; font-weight: 600;"
+                        >
+                    </div>
+                    <button class="btn btn-primary btn-block" onclick="verifyAndEnable()">
+                        <i class="fas fa-check"></i> Enable MFA
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/auth.js"></script>
+    <script>
+        let mfaData = {};
+
+        async function initMFA() {
+            const user = getCurrentUser();
+            if (!user) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/mfa/setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user.username })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    mfaData = result;
+                    
+                    // Display QR code
+                    document.getElementById('qrCodeContainer').innerHTML = 
+                        `<img src="${result.qr_code}" alt="QR Code">`;
+                    
+                    // Display secret
+                    document.getElementById('secretKey').textContent = result.secret;
+                    
+                    // Display backup codes
+                    const codesHTML = result.backup_codes.map(code => 
+                        `<div class="backup-code">${code}</div>`
+                    ).join('');
+                    document.getElementById('backupCodes').innerHTML = codesHTML;
+                } else {
+                    alert('Error setting up MFA: ' + result.error);
+                }
+            } catch (error) {
+                console.error('MFA setup error:', error);
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        async function verifyAndEnable() {
+            const code = document.getElementById('verifyCode').value;
+            const user = getCurrentUser();
+
+            if (!code || code.length !== 6) {
+                alert('Please enter a 6-digit code');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/mfa/verify-setup', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        username: user.username,
+                        code: code 
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ MFA enabled successfully!');
+                    window.location.href = 'dashboard.html';
+                } else {
+                    alert('❌ ' + result.error);
+                    document.getElementById('verifyCode').value = '';
+                }
+            } catch (error) {
+                console.error('Verify error:', error);
+                alert('Connection error. Please try again.');
+            }
+        }
+
+        function downloadBackupCodes() {
+            const codes = mfaData.backup_codes.join('\n');
+            const blob = new Blob([`SecureNet Backup Codes\n\n${codes}\n\nKeep these codes safe!`], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'securenet-backup-codes.txt';
+            a.click();
+        }
+
+        // Auto-focus on code input
+        document.getElementById('verifyCode').addEventListener('input', function(e) {
+            // Only allow numbers
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+
+        document.addEventListener('DOMContentLoaded', initMFA);
+    </script>
+</body>
+</html>

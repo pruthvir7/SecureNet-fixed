@@ -1,0 +1,33 @@
+{
+  "user_id": "prit",
+  "created_at": "2025-11-24T00:02:44.812163",
+  "last_updated": "2025-11-24T00:02:44.820238",
+  "keystroke_baseline": {
+    "avg_timing": 228.41666666666666,
+    "std_timing": 56.04307619045272,
+    "cv_timing": 0.24535458275854713,
+    "consistency": 0.8029841571586226,
+    "speed_proxy": 261.53287322920454
+  },
+  "network_baseline": {
+    "registration_ip": "2406:7400:123:f99f::1002",
+    "registration_country": "IN",
+    "typical_countries": [
+      "IN"
+    ],
+    "typical_devices": [
+      "unknown"
+    ],
+    "typical_asns": [
+      "24309"
+    ],
+    "typical_login_hours": [
+      0
+    ],
+    "registration_time": "2025-11-24T00:02:44.812225",
+    "blacklisted_ips": []
+  },
+  "successful_logins": 0,
+  "failed_attempts": 0,
+  "last_login": null
+}
