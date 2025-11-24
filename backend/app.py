@@ -29,7 +29,7 @@ from flask_mail import Mail, Message
 import random
 from backend.admin_routes import admin_bp
 import eventlet
-eventlet.monkey_patch()
+eventlet.monkey_patch(socket=True, select=True, time=True)
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
