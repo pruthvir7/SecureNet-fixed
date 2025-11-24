@@ -291,15 +291,14 @@ class UserBehavioralProfile:
 class AuthenticationEngine:
     """Main authentication engine combining all security layers."""
     
-    def __init__(self, model_dir='models/securenet_model_all5_20251118_190557', storage_dir='user_profiles'):
+    def __init__(self, model_dir='models/securenet_model_all5_20251118_190557', db_manager=None):
         # Load ML model
         self.model = keras.models.load_model(f"{model_dir}/neural_network.h5")
         self.preprocessor = joblib.load(f"{model_dir}/preprocess.pkl")
         self.feature_cols = joblib.load(f"{model_dir}/feature_columns.pkl")
         
         # Profile storage
-        self.storage_dir = storage_dir
-        os.makedirs(storage_dir, exist_ok=True)
+        self.db = db_manager
         
         print("✓ Authentication Engine initialized with ML model")
     
@@ -526,17 +525,24 @@ class AuthenticationEngine:
         return self._load_profile(user_id)
     
     def _save_profile(self, profile):
-        """Save profile to disk."""
-        filepath = os.path.join(self.storage_dir, f"{profile.user_id}.json")
-        with open(filepath, 'w') as f:
-            json.dump(profile.to_dict(), f, indent=2)
+        """Save profile to database."""
+        if self.db:
+            self.db.save_user_profile(profile.user_id, profile.to_dict())
+        else:
+            print(f"⚠️ No database manager provided, cannot save profile for {profile.user_id}")
+
     
     def _load_profile(self, user_id):
-        """Load profile from disk."""
-        filepath = os.path.join(self.storage_dir, f"{user_id}.json")
-        try:
-            with open(filepath, 'r') as f:
-                data = json.load(f)
-            return UserBehavioralProfile.from_dict(data)
-        except FileNotFoundError:
+        """Load profile from database."""
+        if not self.db:
+            print(f"⚠️ No database manager provided, cannot load profile for {user_id}")
             return None
+        
+        profile_data = self.db.load_user_profile(user_id)
+        
+        if profile_data:
+            return UserBehavioralProfile.from_dict(profile_data)
+        else:
+            print(f"⚠️ Profile not found in database for {user_id}")
+            return None
+
