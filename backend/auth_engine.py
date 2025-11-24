@@ -185,29 +185,6 @@ class UserBehavioralProfile:
             anomaly_score += 0.5  # Minor concern
             print(f"⚠️ New ASN/ISP detected: {current_asn}")
 
-        vpn_hosting_asns = [
-            '13335',  # Cloudflare
-            '16509',  # Amazon AWS
-            '14061',  # DigitalOcean
-            '15169',  # Google Cloud
-            '8075',   # Microsoft Azure
-            '36352',  # ColoCrossing
-            '62904',  # Eonix
-            '46606',  # Unified Layer
-            '19318',  # Interserver
-            '20473',  # Choopa (Vultr)
-            '54290',  # Hostwinds
-            '53667',  # FranTech Solutions
-            '16276',  # OVH
-            '24940',  # Hetzner
-            '209',    # CenturyLink (common VPN exit)
-            # NordVPN, ExpressVPN, etc. use multiple ASNs - add as you discover them
-        ]
-
-        if current_asn in vpn_hosting_asns:
-            flags.append('vpn_or_hosting')
-            anomaly_score += 2
-            print(f"⚠️ VPN/hosting ASN detected: {current_asn}")
         
         # Check login hour (time-based anomaly)
         typical_hours = self.network_baseline.get('typical_login_hours', [])
