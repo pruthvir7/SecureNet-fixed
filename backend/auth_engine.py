@@ -291,7 +291,7 @@ class UserBehavioralProfile:
 class AuthenticationEngine:
     """Main authentication engine combining all security layers."""
     
-    def __init__(self, model_dir='/Users/pruthvir/Documents/Securenet Draft/models/securenet_model_all5_20251118_190557', storage_dir='user_profiles'):
+    def __init__(self, model_dir='models/securenet_model_all5_20251118_190557', storage_dir='user_profiles'):
         # Load ML model
         self.model = keras.models.load_model(f"{model_dir}/neural_network.h5")
         self.preprocessor = joblib.load(f"{model_dir}/preprocess.pkl")
