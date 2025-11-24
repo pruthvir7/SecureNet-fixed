@@ -329,6 +329,16 @@ def api_login():
         backend_network_info = get_ip_location(client_ip)
 
 # Check for VPN/datacenter
+        if backend_network_info.get('is_vpn'):
+            edns_boost = 2  # Initialize first
+            print(f"⚠️ VPN/Proxy detected via IPHub")
+            edns_boost += 2  # Extra penalty for VPN
+        elif is_vpn_or_datacenter(backend_network_info['asn']):
+            print(f"⚠️ VPN/datacenter ASN detected: {backend_network_info['asn']}")
+            edns_boost = 2  # Initialize and set
+            edns_boost += 1
+        else:
+            edns_boost = 0  # Initialize for normal IPs
         
         
         # Merge frontend and backend network info
