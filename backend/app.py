@@ -106,31 +106,40 @@ def get_ip_location(ip_address):
         return {'country': 'US', 'asn': '0', 'ip_address': ip_address}
     
     try:
-        response = requests.get(
+        import requests as req  # Use alias to avoid conflicts
+        
+        resp = req.get(
             f'https://ipinfo.io/{ip_address}/json',
-            timeout=10
+            timeout=5,
+            headers={'Accept': 'application/json'}
         )
         
-        if response.ok:
-            data = response.json()
+        if resp.status_code == 200:
+            data = resp.json()
             
-            # ipinfo.io returns 'org' with ASN like "AS15169 Google LLC"
             org = data.get('org', 'AS0')
-            asn = org.split()[0].replace('AS', '') if org.startswith('AS') else '0'
+            asn = '0'
+            if org and org.startswith('AS'):
+                asn = org.split()[0].replace('AS', '')
             
             country = data.get('country', 'Unknown')
             
-            print(f"🌍 ipinfo.io: {ip_address} → {country}, ASN: {asn}")
+            print(f"🌍 Location: {country}, ASN: {asn}")
             
             return {
                 'country': country,
                 'asn': asn,
                 'ip_address': ip_address
             }
-    except Exception as e:
-        print(f"❌ ipinfo.io error for {ip_address}: {e}")
+        else:
+            print(f"❌ ipinfo status: {resp.status_code}")
+            
+    except Exception as ex:
+        # Only print the exception type and message, not the full object
+        print(f"❌ Geolocation error: {type(ex).__name__}: {str(ex)[:100]}")
     
     return {'country': 'Unknown', 'asn': '0', 'ip_address': ip_address}
+
 
 
 def is_vpn_or_datacenter(asn):
