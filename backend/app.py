@@ -3,6 +3,8 @@
 SecureNet Backend API with EDNS Integration
 Complete authentication system with ML, behavioral biometrics, and DNS security
 """
+import gevent.monkey
+gevent.monkey.patch_all()
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
