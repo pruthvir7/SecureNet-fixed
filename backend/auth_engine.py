@@ -185,6 +185,29 @@ class UserBehavioralProfile:
             anomaly_score += 0.5  # Minor concern
             print(f"⚠️ New ASN/ISP detected: {current_asn}")
 
+        vpn_hosting_asns = [
+            '13335',  # Cloudflare
+            '16509',  # Amazon AWS
+            '14061',  # DigitalOcean
+            '15169',  # Google Cloud
+            '8075',   # Microsoft Azure
+            '36352',  # ColoCrossing
+            '62904',  # Eonix
+            '46606',  # Unified Layer
+            '19318',  # Interserver
+            '20473',  # Choopa (Vultr)
+            '54290',  # Hostwinds
+            '53667',  # FranTech Solutions
+            '16276',  # OVH
+            '24940',  # Hetzner
+            '209',    # CenturyLink (common VPN exit)
+            # NordVPN, ExpressVPN, etc. use multiple ASNs - add as you discover them
+        ]
+
+        if current_asn in vpn_hosting_asns:
+            flags.append('vpn_or_hosting')
+            anomaly_score += 2
+            print(f"⚠️ VPN/hosting ASN detected: {current_asn}")
         
         # Check login hour (time-based anomaly)
         typical_hours = self.network_baseline.get('typical_login_hours', [])
@@ -424,15 +447,12 @@ class AuthenticationEngine:
         network_flags, network_boost = profile._check_network_anomalies(network_info)
         
         ip = network_info.get('ip_address', '')
-        test_ips = ['127.0.0.1', '::1', 'localhost']
-
-        # Zero out EDNS and any network boost for localhost/dev IPs
-        if ip in test_ips:
+        test_ips = ['127.0.0.1', '::1', 'localhost', '0.0.0.0']
+# Also check for private network ranges
+        if ip in test_ips or ip.startswith('192.168.') or ip.startswith('10.') or ip.startswith('172.'):
             edns_boost = 0
-            # Also fix potential network boost from ASN anomaly
-            # You can just recalculate network_flags, network_boost safely for dev
             network_flags, network_boost = [], 0
-            print("✓ Localhost/dev login detected, suppressing EDNS/network boosts.")
+            print("✓ Local/private IP detected, suppressing EDNS/network boosts.")
 
         # Total risk boost
         total_boost = behavioral_boost + network_boost + edns_boost
