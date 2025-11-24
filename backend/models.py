@@ -373,5 +373,53 @@ class DatabaseManager:
             print(f"Update backup codes error: {e}")
             return False
 
+    def save_user_profile(self, user_id, profile_dict):
+    """Save user behavioral profile to database."""
+    try:
+        with self.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO user_profiles (user_id, profile_data)
+                VALUES (%s, %s)
+                ON DUPLICATE KEY UPDATE 
+                    profile_data = VALUES(profile_data),
+                    updated_at = NOW()
+            """, (user_id, json.dumps(profile_dict)))
+            
+            print(f"✓ Profile saved to database for user {user_id}")
+            return True
+            
+    except Exception as e:
+        print(f"❌ Profile save failed for {user_id}: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+    def load_user_profile(self, user_id):
+        """Load user behavioral profile from database."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT profile_data FROM user_profiles WHERE user_id = %s
+                """, (user_id,))
+                
+                result = cursor.fetchone()
+                
+                if result:
+                    profile_data = json.loads(result['profile_data'])
+                    print(f"✓ Profile loaded from database: user={user_id}, logins={profile_data.get('successful_logins', 0)}")
+                    return profile_data
+                else:
+                    print(f"⚠️ No profile found in database for user {user_id}")
+                    return None
+                    
+        except Exception as e:
+            print(f"❌ Profile load failed for {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return None
+
+
 
 
