@@ -1204,4 +1204,4 @@ if __name__ == '__main__':
     print("\nServer starting on http://localhost:5001")
     print("="*80 + "\n")
     
-    socketio.run(app, host='0.0.0.0', port=PORT, debug=True)
+    socketio.run(app, host='0.0.0.0', port=PORT, debug=False)
