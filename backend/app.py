@@ -352,11 +352,6 @@ def api_login():
         
         print(f"🌍 Login from: {network_info['country']} | IP: {network_info['ip_address']}")
         
-        # EDNS check - Pass BOTH ip_address AND username
-        edns_result = edns_layer.check_login_security(network_info['ip_address'], username)
-        
-        # Debug: See what EDNS returns
-        print(f"DEBUG EDNS result: {edns_result}")
         
         # Safe access with multiple possible keys
         threats_detected = (
@@ -365,12 +360,6 @@ def api_login():
             len(edns_result.get('threats', [])) > 0
         )
         
-        edns_boost = 2 if threats_detected else 0
-
-        if is_vpn_or_datacenter(backend_network_info['asn']):
-            print(f"⚠️ VPN/datacenter ASN detected: {backend_network_info['asn']}")
-            edns_boost += 1  # Add extra risk for VPN
-        print(f"EDNS boost: {edns_boost}")
         
         # Authentication with REAL network data
         login_data = {
