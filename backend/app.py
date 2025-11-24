@@ -8,7 +8,7 @@ from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
-from auth_engine import AuthenticationEngine, UserBehavioralProfile
+from backend.auth_engine import AuthenticationEngine, UserBehavioralProfile
 import os
 import sys
 from datetime import datetime, timedelta, timezone
@@ -27,14 +27,14 @@ import base64
 import json
 from flask_mail import Mail, Message
 import random
-from admin_routes import admin_bp
-
+from backend.admin_routes import admin_bp
+import eventlet
+eventlet.monkey_patch()
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from auth_engine import AuthenticationEngine
-from edns_integration import EDNSSecurityLayer
-from models import DatabaseManager
+from backend.edns_integration import EDNSSecurityLayer
+from backend.models import DatabaseManager
 
 # Initialize Flask app
 app = Flask(__name__, 
@@ -79,10 +79,10 @@ limiter = Limiter(
 auth_engine = AuthenticationEngine()
 edns_layer = EDNSSecurityLayer()
 db = DatabaseManager(
-    host='127.0.0.1',
-    user='root',
-    password='pruthu500',  # Change this!
-    database='securenet',
+    host='securenet-securenet1.c.aivencloud.com',
+    user='avnadmin',
+    password='AVNS_DzruYfuj_BgF2aD1K9c',  # Change this!
+    database='defaultdb', port=10675
 )
 app.config['DB'] = db
 app.register_blueprint(admin_bp)
@@ -1128,4 +1128,4 @@ if __name__ == '__main__':
     print("\nServer starting on http://localhost:5001")
     print("="*80 + "\n")
     
-    socketio.run(app, host='0.0.0.0', port=5001, debug=True)
+    socketio.run(app, host='0.0.0.0', port=PORT, debug=True)
