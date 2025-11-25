@@ -19,10 +19,7 @@ class DatabaseManager:
             'charset': 'utf8mb4',
             'port': port,
             'cursorclass': pymysql.cursors.DictCursor,
-            'autocommit': False,
-            'ssl': {'ssl_disabled': False},      # ← Add SSL for Aiven
-            'ssl_verify_cert': False,             # ← Skip cert verification
-            'ssl_verify_identity': False          # ← Skip identity check
+            'autocommit': False
         }
         
         self._create_database_if_not_exists()
