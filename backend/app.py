@@ -346,7 +346,7 @@ def api_login():
             # Use threat_level for boost (1-3)
             threat_level = edns_result.get('threat_level', 1)
             edns_boost += threat_level  # 1 for minor, 2-3 for major
-            print(f"⚠️
+            print(f"⚠️ EDNS threat detected (level {threat_level})")
         
         # VPN detection from IPHub
         if backend_network_info.get('is_vpn'):
