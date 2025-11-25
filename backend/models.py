@@ -374,26 +374,26 @@ class DatabaseManager:
             return False
 
     def save_user_profile(self, user_id, profile_dict):
-    """Save user behavioral profile to database."""
-    try:
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO user_profiles (user_id, profile_data)
-                VALUES (%s, %s)
-                ON DUPLICATE KEY UPDATE 
-                    profile_data = VALUES(profile_data),
-                    updated_at = NOW()
-            """, (user_id, json.dumps(profile_dict)))
-            
-            print(f"✓ Profile saved to database for user {user_id}")
-            return True
-            
-    except Exception as e:
-        print(f"❌ Profile save failed for {user_id}: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+        """Save user behavioral profile to database."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO user_profiles (user_id, profile_data)
+                    VALUES (%s, %s)
+                    ON DUPLICATE KEY UPDATE 
+                        profile_data = VALUES(profile_data),
+                        updated_at = NOW()
+                """, (user_id, json.dumps(profile_dict)))
+                
+                print(f"✓ Profile saved to database for user {user_id}")
+                return True
+                
+        except Exception as e:
+            print(f"❌ Profile save failed for {user_id}: {e}")
+            import traceback
+            traceback.print_exc()
+            return False
 
     def load_user_profile(self, user_id):
         """Load user behavioral profile from database."""
