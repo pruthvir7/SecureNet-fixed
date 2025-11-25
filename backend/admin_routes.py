@@ -8,6 +8,7 @@ from functools import wraps
 import json
 import os
 from datetime import datetime, timedelta
+import pymysql.cursors  # ← ADD THIS IMPORT
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -69,7 +70,7 @@ def get_overview_stats():
         db = current_app.config['DB']
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             
             # Total users
             cursor.execute('SELECT COUNT(*) as count FROM users')
@@ -110,6 +111,9 @@ def get_overview_stats():
             'success_rate': round(((recent_logins - failed_logins) / recent_logins * 100) if recent_logins > 0 else 100, 1)
         }), 200
     except Exception as e:
+        print(f"❌ Admin stats error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/api/admin/stats/timeline', methods=['GET'])
@@ -121,7 +125,7 @@ def get_timeline_stats():
         days = int(request.args.get('days', 7))
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             
             start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d %H:%M:%S')
             cursor.execute('''
@@ -141,6 +145,7 @@ def get_timeline_stats():
         
         return jsonify(results), 200
     except Exception as e:
+        print(f"❌ Timeline error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/api/admin/stats/risk-distribution', methods=['GET'])
@@ -151,7 +156,7 @@ def get_risk_distribution():
         db = current_app.config['DB']
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             yesterday = (datetime.now() - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
             
             cursor.execute('''
@@ -177,7 +182,7 @@ def get_geographic_stats():
         db = current_app.config['DB']
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             yesterday = (datetime.now() - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
             
             cursor.execute('''
@@ -214,7 +219,7 @@ def list_users():
         offset = (page - 1) * per_page
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             
             if search:
                 cursor.execute('''
@@ -244,6 +249,9 @@ def list_users():
             'total_pages': (total + per_page - 1) // per_page
         }), 200
     except Exception as e:
+        print(f"❌ List users error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/api/admin/users/<int:user_id>', methods=['GET'])
@@ -254,7 +262,7 @@ def get_user_details(user_id):
         db = current_app.config['DB']
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             
             # User info
             cursor.execute('SELECT * FROM users WHERE id = %s', (user_id,))
@@ -288,6 +296,7 @@ def get_user_details(user_id):
             'profile': profile_data
         }), 200
     except Exception as e:
+        print(f"❌ Get user details error: {e}")
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/api/admin/users/<int:user_id>/unlock', methods=['POST'])
@@ -300,7 +309,6 @@ def unlock_user(user_id):
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
-            # Unlock user and reset failed attempts
             cursor.execute('''
                 UPDATE users 
                 SET is_locked = FALSE, failed_attempts = 0 
@@ -384,7 +392,7 @@ def get_auth_logs():
         offset = (page - 1) * per_page
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             
             query = '''
                 SELECT l.*, u.username
@@ -410,6 +418,9 @@ def get_auth_logs():
         
         return jsonify({'logs': logs}), 200
     except Exception as e:
+        print(f"❌ Get logs error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 # ============================================================================
@@ -458,7 +469,7 @@ def get_suspicious_ips():
         db = current_app.config['DB']
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             yesterday = (datetime.now() - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
             
             cursor.execute('''
@@ -479,6 +490,9 @@ def get_suspicious_ips():
         
         return jsonify(ips), 200
     except Exception as e:
+        print(f"❌ Get threats error: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/api/admin/threats/patterns', methods=['GET'])
@@ -489,7 +503,7 @@ def get_attack_patterns():
         db = current_app.config['DB']
         
         with db.get_connection() as conn:
-            cursor = conn.cursor(dictionary=True)
+            cursor = conn.cursor(pymysql.cursors.DictCursor)  # ← FIXED
             yesterday = (datetime.now() - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
             
             cursor.execute('''
@@ -510,4 +524,5 @@ def get_attack_patterns():
         
         return jsonify(patterns), 200
     except Exception as e:
+        print(f"❌ Get patterns error: {e}")
         return jsonify({'error': str(e)}), 500
