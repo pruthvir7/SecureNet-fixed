@@ -22,8 +22,10 @@ class UserBehavioralProfile:
             'typical_countries': [],
             'typical_asns': [],
             'typical_devices': [],
-            'typical_login_hours': []
+            'typical_login_hours': [],
+            'country_login_counts': {}  # ← ADD THIS
         }
+
         self.successful_logins = 0
         self.failed_attempts = 0
         self.last_login = None
@@ -32,7 +34,7 @@ class UserBehavioralProfile:
         """Capture initial baseline during registration."""
         keystroke_timings = registration_data.get('keystroke_timings', [])
         network_info = registration_data.get('network_info', {})
-
+    
         # Store device fingerprint
         device_fingerprint = network_info.get('device_fingerprint', 'unknown')
         current_country = network_info.get('country', 'US')
@@ -42,12 +44,13 @@ class UserBehavioralProfile:
         self.network_baseline = {
             'registration_ip': network_info.get('ip_address'),
             'registration_country': current_country,
-            'typical_countries': [current_country],  # Already includes country
+            'typical_countries': [current_country],
             'typical_devices': [device_fingerprint],
-            'typical_asns': [current_asn],  # ← FIX: Initialize this
-            'typical_login_hours': [datetime.now().hour],  # ← FIX: Initialize this
-            'registration_time': datetime.now().isoformat(),  # ← Store as string
-            'blacklisted_ips': []  # Good to have
+            'typical_asns': [current_asn],
+            'typical_login_hours': [datetime.now().hour],
+            'registration_time': datetime.now().isoformat(),
+            'blacklisted_ips': [],
+            'country_login_counts': {current_country: 1}  # ← ADD THIS LINE
         }
         
         # Calculate keystroke baseline if data exists
@@ -65,8 +68,9 @@ class UserBehavioralProfile:
         
         print(f"✓ Registration baseline captured:")
         print(f"  Device: {device_fingerprint[:16]}...")
-        print(f"  Country: {current_country}")
+        print(f"  Country: {current_country} (count: 1)")  # ← UPDATE THIS
         print(f"  IP: {network_info.get('ip_address', 'Unknown')}")
+
 
     
     def compare_to_baseline(self, login_data):
@@ -237,6 +241,16 @@ class UserBehavioralProfile:
                     self.keystroke_baseline['std_timing'] = float(
                         (1 - alpha) * self.keystroke_baseline['std_timing'] + alpha * current_std
                     )
+                    # Recalculate derived metrics
+                    self.keystroke_baseline['cv_timing'] = float(
+                        self.keystroke_baseline['std_timing'] / (self.keystroke_baseline['avg_timing'] + 1e-6)
+                    )
+                    self.keystroke_baseline['consistency'] = float(
+                        1 / (1 + self.keystroke_baseline['std_timing'] / (self.keystroke_baseline['avg_timing'] + 1e-6))
+                    )
+                    self.keystroke_baseline['speed_proxy'] = float(
+                        60000.0 / (self.keystroke_baseline['avg_timing'] + 1.0)
+                    )
             
             # Update network baseline
             country = network_info.get('country')
@@ -246,8 +260,43 @@ class UserBehavioralProfile:
             current_hour = datetime.now().hour
             if current_hour not in self.network_baseline['typical_login_hours']:
                 self.network_baseline['typical_login_hours'].append(current_hour)
+            
+            # ========== ADD THIS SECTION ==========
+            # Update country login counts
+            if country and country != 'Unknown':
+                # Initialize country_login_counts if it doesn't exist (for old profiles)
+                if 'country_login_counts' not in self.network_baseline:
+                    self.network_baseline['country_login_counts'] = {}
+                
+                # Increment country count
+                if country in self.network_baseline['country_login_counts']:
+                    self.network_baseline['country_login_counts'][country] += 1
+                else:
+                    self.network_baseline['country_login_counts'][country] = 1
+                
+                print(f"✓ Country login count: {country} = {self.network_baseline['country_login_counts'][country]}")
+            # ========== END NEW SECTION ==========
+            
+            # Update other network info if needed
+            device_fingerprint = network_info.get('device_fingerprint')
+            if device_fingerprint and device_fingerprint not in self.network_baseline.get('typical_devices', []):
+                if 'typical_devices' not in self.network_baseline:
+                    self.network_baseline['typical_devices'] = []
+                self.network_baseline['typical_devices'].append(device_fingerprint)
+                # Keep only last 5 devices
+                self.network_baseline['typical_devices'] = self.network_baseline['typical_devices'][-5:]
+            
+            asn = str(network_info.get('asn', '0'))
+            if asn and asn != '0' and asn not in self.network_baseline.get('typical_asns', []):
+                if 'typical_asns' not in self.network_baseline:
+                    self.network_baseline['typical_asns'] = []
+                self.network_baseline['typical_asns'].append(asn)
+                # Keep only last 10 ASNs
+                self.network_baseline['typical_asns'] = self.network_baseline['typical_asns'][-10:]
+        
         else:
             self.failed_attempts += 1
+
     
     def to_dict(self):
         """Convert profile to dictionary for JSON storage."""
@@ -281,10 +330,26 @@ class UserBehavioralProfile:
         profile = cls(data['user_id'])
         profile.created_at = data.get('created_at', profile.created_at)
         profile.keystroke_baseline = data.get('keystroke_baseline', {})
+        
+        # Load network baseline
         profile.network_baseline = data.get('network_baseline', profile.network_baseline)
+        
+        # ← ADD MIGRATION: Handle old profiles without country_login_counts
+        if 'country_login_counts' not in profile.network_baseline:
+            profile.network_baseline['country_login_counts'] = {}
+            
+            # Estimate counts from typical_countries list (for migration)
+            from collections import Counter
+            countries = profile.network_baseline.get('typical_countries', [])
+            if countries:
+                country_counts = Counter(countries)
+                profile.network_baseline['country_login_counts'] = dict(country_counts)
+                print(f"⚠️ Migrated old profile: estimated country counts from baseline")
+        
         profile.successful_logins = data.get('successful_logins', 0)
         profile.failed_attempts = data.get('failed_attempts', 0)
-        profile.last_login = data.get('last_login')  # Already a string
+        profile.last_login = data.get('last_login')
+        
         return profile
 
 
@@ -328,10 +393,13 @@ class AuthenticationEngine:
         # Compare to baseline
         deviations = profile.compare_to_baseline(login_data)
         
-        # Prepare ML features
-        keystroke_timings = login_data.get('keystroke_timings', [120])
+                keystroke_timings = login_data.get('keystroke_timings', [120])
         network_info = login_data.get('network_info', {})
-        
+
+        # Get country frequency from counts dictionary
+        country = network_info.get('country', 'Unknown')
+        country_freq = profile.network_baseline.get('country_login_counts', {}).get(country, 0)
+
         features_dict = {
             'avg_timing': np.mean(keystroke_timings),
             'std_timing': np.std(keystroke_timings),
@@ -342,10 +410,10 @@ class AuthenticationEngine:
             'day_of_week': datetime.now().weekday(),
             'is_weekend': 1 if datetime.now().weekday() >= 5 else 0,
             'is_night': 1 if (datetime.now().hour < 6 or datetime.now().hour >= 22) else 0,
-            'country_frequency': 1000 if network_info.get('country') in profile.network_baseline['typical_countries'] else 10,
-            'is_unknown_location': 1 if network_info.get('country') == '-' else 0,
+            'country_frequency': country_freq,  # ← FIXED: Use actual count
+            'is_unknown_location': 1 if country_freq == 0 else 0,  # ← FIXED: Based on count
             'ip_entropy': len(set(network_info.get('ip_address', '0.0.0.0').split('.'))),
-            'asn': int(network_info.get('asn', 0)),  # Convert to int
+            'asn': int(network_info.get('asn', 0)),
             'is_mobile': 1 if 'Mobile' in network_info.get('user_agent', '') else 0,
             'is_bot': 1 if any(x in network_info.get('user_agent', '').lower() for x in ['bot', 'curl', 'python']) else 0,
             'ua_length': len(network_info.get('user_agent', '')),
@@ -353,8 +421,10 @@ class AuthenticationEngine:
             'source_noise_2': 0,
             'dataset_source': 'RBA'
         }
-        
-        print("ML input features:", features_dict)
+
+        print(f"ML input features: {features_dict}")
+        print(f"  🌍 Country: {country}, Frequency: {country_freq}, Unknown location: {features_dict['is_unknown_location']}")
+
         
         features_df = pd.DataFrame([features_dict])
         
