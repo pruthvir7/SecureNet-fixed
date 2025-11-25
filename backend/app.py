@@ -80,7 +80,7 @@ limiter = Limiter(
 db = DatabaseManager(
     host='securenet-securenet1.c.aivencloud.com',
     user='avnadmin',
-    password='AVNS_DzruYfujBgF2aD1K9c',
+    password='AVNS_DzruYfuj_BgF2aD1K9c',
     database='defaultdb',
     port=10675
 )
