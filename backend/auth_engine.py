@@ -357,15 +357,29 @@ class AuthenticationEngine:
     """Main authentication engine combining all security layers."""
     
     def __init__(self, model_dir='models/securenet_model_all5_20251118_190557', db_manager=None):
-        # Load ML model
-        self.model = keras.models.load_model(f"{model_dir}/neural_network.h5")
-        self.preprocessor = joblib.load(f"{model_dir}/preprocess.pkl")
-        self.feature_cols = joblib.load(f"{model_dir}/feature_columns.pkl")
-        
-        # Profile storage
+        self.model_dir = model_dir
         self.db = db_manager
         
-        print("✓ Authentication Engine initialized with ML model")
+        # Don't load model yet - load on first use
+        self.model = None
+        self.preprocessor = None
+        self.feature_cols = None
+        
+        print("✓ Authentication Engine initialized (ML model will load on first authentication)")
+    
+    def _ensure_model_loaded(self):
+        """Load ML model on first authentication request."""
+        if self.model is None:
+            print("🔄 Loading ML model...")
+            import time
+            start = time.time()
+            
+            self.model = keras.models.load_model(f"{self.model_dir}/neural_network.h5")
+            self.preprocessor = joblib.load(f"{self.model_dir}/preprocess.pkl")
+            self.feature_cols = joblib.load(f"{self.model_dir}/feature_columns.pkl")
+            
+            elapsed = time.time() - start
+            print(f"✓ ML model loaded in {elapsed:.2f}s")
     
     def register_user(self, user_id, registration_data):
         """Register new user and capture baseline."""
@@ -377,6 +391,8 @@ class AuthenticationEngine:
     
     def authenticate_user(self, user_id, login_data, edns_boost=0):
         """Complete authentication with all security layers."""
+
+        self._ensure_model_loaded()
         # Load profile
         profile = self._load_profile(user_id)
         if not profile:
