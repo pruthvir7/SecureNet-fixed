@@ -19,7 +19,10 @@ class DatabaseManager:
             'charset': 'utf8mb4',
             'port': port,
             'cursorclass': pymysql.cursors.DictCursor,
-            'autocommit': False
+            'autocommit': False,
+            'ssl': {'ssl_disabled': False},      # ← Add SSL for Aiven
+            'ssl_verify_cert': False,             # ← Skip cert verification
+            'ssl_verify_identity': False          # ← Skip identity check
         }
         
         self._create_database_if_not_exists()
@@ -30,16 +33,23 @@ class DatabaseManager:
         """Create the database if it doesn't exist."""
         try:
             temp_config = self.config.copy()
-            temp_config.pop('database')
+            temp_config.pop('database', None)  # Remove database key
+            
+            # Add SSL config for Aiven
+            temp_config['ssl'] = {'ssl_disabled': False}
+            temp_config['ssl_verify_cert'] = False
+            temp_config['ssl_verify_identity'] = False
             
             conn = pymysql.connect(**temp_config)
             cursor = conn.cursor()
             cursor.execute(f"CREATE DATABASE IF NOT EXISTS {self.config['database']}")
             cursor.close()
             conn.close()
+            print(f"✓ Database '{self.config['database']}' ready")
         except Exception as e:
             print(f"Error creating database: {e}")
             raise
+
     
     @contextmanager
     def get_connection(self):
