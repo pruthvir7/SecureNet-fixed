@@ -393,7 +393,7 @@ class AuthenticationEngine:
         # Compare to baseline
         deviations = profile.compare_to_baseline(login_data)
         
-                keystroke_timings = login_data.get('keystroke_timings', [120])
+        keystroke_timings = login_data.get('keystroke_timings', [120])
         network_info = login_data.get('network_info', {})
 
         # Get country frequency from counts dictionary
