@@ -274,7 +274,7 @@
             
             // Load profile data
             try {
-                const profile = await authenticatedFetch('/user/profile');
+                const profile = await authenticatedFetch('/api/user/profile');
                 
                 if (profile.success) {
                     document.getElementById('totalLogins').textContent = profile.profile.successful_logins;
@@ -291,7 +291,7 @@
             
             // Load activity history
             try {
-                const history = await authenticatedFetch('/user/auth-history');
+                const history = await authenticatedFetch('/api/user/auth-history');
                 
                 if (history.success) {
                     displayActivity(history.history);
