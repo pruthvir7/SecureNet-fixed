@@ -21,3 +21,4 @@ pymysql
 gunicorn>=21.2.0
 gevent>=23.9.0
 gevent-websocket>=0.10.1
+cryptography>=41.0.0
