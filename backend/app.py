@@ -61,7 +61,7 @@ bcrypt = Bcrypt(app)
 # app.config['MAIL_PASSWORD'] = 'rjfc exxd efle lacj'     # Change this
 # app.config['MAIL_DEFAULT_SENDER'] = 'SecureNet <noreply@securenet.com>'
 
-mail = Mail(app)
+# mail = Mail(app)
 
 # Store OTP codes temporarily (use Redis in production)
 otp_storage = {}
