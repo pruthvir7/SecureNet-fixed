@@ -27,7 +27,9 @@ import qrcode
 import io
 import base64
 import json
-from flask_mail import Mail, Message
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 import random
 from backend.admin_routes import admin_bp
 # Add parent directory to path
@@ -52,12 +54,12 @@ CORS(app, resources={
 })
 bcrypt = Bcrypt(app) 
 # Email configuration
-app.config['MAIL_SERVER'] = 'smtp.gmail.com'
-app.config['MAIL_PORT'] = 587
-app.config['MAIL_USE_TLS'] = True
-app.config['MAIL_USERNAME'] = 'securenet220@gmail.com'  # Change this
-app.config['MAIL_PASSWORD'] = 'rjfc exxd efle lacj'     # Change this
-app.config['MAIL_DEFAULT_SENDER'] = 'SecureNet <noreply@securenet.com>'
+# app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+# app.config['MAIL_PORT'] = 587
+# app.config['MAIL_USE_TLS'] = True
+# app.config['MAIL_USERNAME'] = 'securenet220@gmail.com'  # Change this
+# app.config['MAIL_PASSWORD'] = 'rjfc exxd efle lacj'     # Change this
+# app.config['MAIL_DEFAULT_SENDER'] = 'SecureNet <noreply@securenet.com>'
 
 mail = Mail(app)
 
@@ -520,14 +522,17 @@ def mask_email(email):
     return email
 
 
+SENDGRID_API_KEY = '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'
+
 def send_email_otp(recipient, otp, username):
-    """Send OTP via email."""
+    """Send OTP via SendGrid."""
     try:
-        msg = Message(
+        message = Mail(
+            from_email='noreply@securenet.com',
+            to_emails=recipient,
             subject='SecureNet - Verification Code',
-            recipients=[recipient],
-            html=f'''
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+            html_content=f'''
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
                     <h2 style="color: white; margin: 0;">🛡️ SecureNet Verification</h2>
                 </div>
@@ -543,19 +548,18 @@ def send_email_otp(recipient, otp, username):
                     <p style="color: #6b7280; font-size: 0.875rem;">
                         🔒 If you didn't attempt to login, please secure your account immediately by changing your password.
                     </p>
-                    <p style="color: #9ca3af; font-size: 0.75rem; margin-top: 20px;">
-                        This is an automated message from SecureNet. Please do not reply to this email.
-                    </p>
                 </div>
-            </div>
+                </div>
             '''
         )
-        mail.send(msg)
-        print(f"✉️ OTP sent to {recipient}: {otp}")
+        sg = SendGridAPIClient(SENDGRID_API_KEY)
+        response = sg.send(message)
+        print(f"✉️ OTP sent to {recipient}: {otp} (SendGrid status: {response.status_code})")
         return True
     except Exception as e:
         print(f"❌ Email send error: {e}")
         return False
+
 
 
 
