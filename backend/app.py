@@ -528,7 +528,7 @@ def send_email_otp(recipient, otp, username):
     """Send OTP via SendGrid."""
     try:
         message = Mail(
-            from_email='noreply@securenet.com',
+            from_email='securenet220@gmail.com',
             to_emails=recipient,
             subject='SecureNet - Verification Code',
             html_content=f'''
