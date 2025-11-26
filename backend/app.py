@@ -56,7 +56,7 @@ app.config['MAIL_SERVER'] = 'smtp.gmail.com'
 app.config['MAIL_PORT'] = 587
 app.config['MAIL_USE_TLS'] = True
 app.config['MAIL_USERNAME'] = 'securenet220@gmail.com'  # Change this
-app.config['MAIL_PASSWORD'] = 'wfdi lrsk fvxr cjkj'     # Change this
+app.config['MAIL_PASSWORD'] = 'rjfc exxd efle lacj'     # Change this
 app.config['MAIL_DEFAULT_SENDER'] = 'SecureNet <noreply@securenet.com>'
 
 mail = Mail(app)
