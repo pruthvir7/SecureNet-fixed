@@ -523,7 +523,7 @@ def mask_email(email):
     return email
 
 
-SENDGRID_API_KEY = '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'
+SENDGRID_API_KEY = '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'
 
 def send_email_otp(recipient, otp, username):
     """Send OTP via SendGrid."""
