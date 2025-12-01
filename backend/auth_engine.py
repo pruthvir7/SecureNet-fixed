@@ -66,10 +66,14 @@ class UserBehavioralProfile:
         else:
             print("⚠️ No keystroke data - baseline not set")
         
+        # Safe display of device fingerprint
+        device_display = device_fingerprint[:16] if device_fingerprint and device_fingerprint != 'unknown' else 'None'
+        
         print(f"✓ Registration baseline captured:")
-        print(f"  Device: {device_fingerprint[:16]}...")
-        print(f"  Country: {current_country} (count: 1)")  # ← UPDATE THIS
+        print(f"  Device: {device_display}...")
+        print(f"  Country: {current_country} (count: 1)")
         print(f"  IP: {network_info.get('ip_address', 'Unknown')}")
+
 
 
     
