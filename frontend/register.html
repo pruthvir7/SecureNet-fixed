@@ -265,6 +265,31 @@
         </div>
     </section>
 
+    <!-- Generic Auth Modal (same style as login) -->
+    <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+        z-index:9999; align-items:center; justify-content:center;">
+      <div style="background:white; padding:32px 32px 28px; border-radius:16px; max-width:420px; text-align:center;">
+        <i class="fas fa-shield-alt" style="font-size:40px; color:#667eea; margin-bottom:18px;"></i>
+        <h3 id="authModalTitle" style="margin-bottom:12px; font-size:22px;">Notice</h3>
+        <p id="authModalMessage" style="color:#6b7280; margin:0 0 20px; line-height:1.5;">
+          Message goes here.
+        </p>
+        <div id="authModalInputRow" style="display:none; margin-bottom:16px;">
+          <input id="authModalInput" type="text"
+                 style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; font-size:14px;"
+                 placeholder="">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button id="authModalPrimaryBtn" class="btn btn-primary" style="padding:10px 18px;">
+            OK
+          </button>
+          <button id="authModalSecondaryBtn" class="btn" style="background:#e5e7eb; color:#374151; padding:10px 18px;">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script src="js/keystroke.js"></script>
     <script src="js/auth.js"></script>
     <script>
@@ -377,7 +402,13 @@
             ];
             
             if (allTimings.length < 9) {
-                alert('Please complete all three typing trials first');
+                openAuthModal({
+                    title: 'Biometric Setup Incomplete',
+                    message: 'Please complete all three typing trials before continuing.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 return;
             }
             
@@ -401,22 +432,46 @@
             const confirmPassword = document.getElementById('confirmPassword').value;
             
             if (username.length < 3) {
-                alert('Username must be at least 3 characters');
+                openAuthModal({
+                    title: 'Username Too Short',
+                    message: 'Username must be at least 3 characters long.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 return false;
             }
             
             if (!email.includes('@')) {
-                alert('Please enter a valid email');
+                openAuthModal({
+                    title: 'Invalid Email',
+                    message: 'Please enter a valid email address.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 return false;
             }
             
             if (password.length < 8) {
-                alert('Password must be at least 8 characters');
+                openAuthModal({
+                    title: 'Weak Password',
+                    message: 'Password must be at least 8 characters long.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 return false;
             }
             
             if (password !== confirmPassword) {
-                alert('Passwords do not match');
+                openAuthModal({
+                    title: 'Passwords Do Not Match',
+                    message: 'Make sure the password and confirmation fields are identical.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 return false;
             }
             
@@ -427,7 +482,13 @@
             e.preventDefault();
             
             if (!keystrokeData.trial1.length || !keystrokeData.trial2.length || !keystrokeData.trial3.length) {
-                alert('Please complete all three typing trials before registering');
+                openAuthModal({
+                    title: 'Biometric Data Missing',
+                    message: 'Please complete all three typing trials before registering.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 return;
             }
             
@@ -507,6 +568,14 @@
             const errorAlert = document.getElementById('errorAlert');
             document.getElementById('errorMessage').textContent = message;
             errorAlert.style.display = 'flex';
+
+            openAuthModal({
+                title: 'Registration Error',
+                message: message,
+                primaryText: 'OK',
+                secondaryText: 'Close',
+                onPrimary: closeAuthModal
+            });
         }
 
         async function getNetworkInfo() {
@@ -532,6 +601,56 @@
                     ip_address: '127.0.0.1'
                 };
             }
+        }
+
+        // Modal helpers (same as login)
+        function openAuthModal(options) {
+            const {
+                title,
+                message,
+                primaryText = 'OK',
+                secondaryText = 'Close',
+                showInput = false,
+                inputType = 'text',
+                inputPlaceholder = '',
+                onPrimary,
+                onSecondary
+            } = options;
+
+            const modal = document.getElementById('authModal');
+            document.getElementById('authModalTitle').textContent = title;
+            document.getElementById('authModalMessage').textContent = message;
+
+            const primaryBtn = document.getElementById('authModalPrimaryBtn');
+            const secondaryBtn = document.getElementById('authModalSecondaryBtn');
+            primaryBtn.textContent = primaryText;
+            secondaryBtn.textContent = secondaryText;
+
+            const inputRow = document.getElementById('authModalInputRow');
+            const inputEl = document.getElementById('authModalInput');
+            if (showInput) {
+                inputRow.style.display = 'block';
+                inputEl.type = inputType;
+                inputEl.value = '';
+                inputEl.placeholder = inputPlaceholder;
+            } else {
+                inputRow.style.display = 'none';
+                inputEl.value = '';
+            }
+
+            primaryBtn.onclick = () => {
+                if (onPrimary) onPrimary(inputEl.value);
+            };
+            secondaryBtn.onclick = () => {
+                if (onSecondary) onSecondary();
+                closeAuthModal();
+            };
+
+            modal.style.display = 'flex';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
         }
     </script>
 </body>
