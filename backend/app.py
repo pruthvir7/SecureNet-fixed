@@ -371,13 +371,13 @@ def api_login():
         client_ip = get_client_ip()
         backend_network_info = get_ip_location(client_ip)  # Now includes 'is_vpn'
         
-        # Merge frontend and backend network info
         frontend_network_info = data.get('network_info', {})
         network_info = {
             'ip_address': backend_network_info['ip_address'],
             'country': backend_network_info['country'],
             'asn': backend_network_info['asn'],
-            'user_agent': frontend_network_info.get('user_agent', request.headers.get('User-Agent', ''))
+            'user_agent': frontend_network_info.get('user_agent', request.headers.get('User-Agent', '')),
+            'device_fingerprint': frontend_network_info.get('device_fingerprint')  # ← ADD THIS LINE
         }
         
         print(f"🌍 Login from: {network_info['country']} | IP: {network_info['ip_address']}")
