@@ -310,7 +310,10 @@ def api_register():
             'device_fingerprint': frontend_network_info.get('device_fingerprint')
         }
         
-        print(f"📍 Registration from: {network_info['country']} | Device: {network_info.get('device_fingerprint', 'None')[:20]}...")
+        # Safe device fingerprint display
+        device_fp = network_info.get('device_fingerprint') or 'None'
+        device_display = device_fp[:20] if device_fp != 'None' else 'None'
+        print(f"📍 Registration from: {network_info['country']} | Device: {device_display}...")
         
         # Create behavioral profile
         profile_id = username
@@ -319,7 +322,7 @@ def api_register():
         # Capture registration baseline with network info
         registration_data = {
             'keystroke_timings': data.get('keystroke_timings', []),
-            'network_info': network_info  # ← Include device/location
+            'network_info': network_info
         }
         profile.capture_registration_baseline(registration_data)
         
@@ -344,7 +347,7 @@ def api_register():
         
         db.log_auth_attempt(user_id, 'success', registration_result)
         
-        print(f"✓ Registration baseline saved: {network_info['country']}, device: {network_info.get('device_fingerprint', 'None')[:20]}")
+        print(f"✓ Registration baseline saved: {network_info['country']}, device: {device_display}")
         
         return jsonify({
             'success': True,
@@ -356,6 +359,7 @@ def api_register():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/api/login', methods=['POST'])
