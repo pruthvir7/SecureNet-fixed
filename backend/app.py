@@ -1354,7 +1354,7 @@ def api_get_profile():
         last_login = None
         if user.get('last_login'):
             # user['last_login'] is a datetime from MySQL
-            last_login = str(user['last_login'])
+            last_login = user['last_login'].isoformat() + 'Z'
 
         return jsonify({
             'success': True,
