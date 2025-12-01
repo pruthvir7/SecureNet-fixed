@@ -599,8 +599,15 @@ def api_login():
             )
         
         # Log auth attempt with final risk level
-        status = 'success' if auth_result['success'] else 'blocked'
+        # Treat only full ALLOW as success; MFA as its own status
+        if auth_result['action'] == 'ALLOW':
+            status = 'success'
+        elif auth_result['action'] in ['MFA', 'TOTP']:
+            status = 'mfa_required'
+        else:
+            status = 'blocked'
         db.log_auth_attempt(user['id'], status, auth_result)
+
         
         # ADAPTIVE MFA BASED ON FINAL RISK LEVEL
         if risk_level == 'Low Risk':
