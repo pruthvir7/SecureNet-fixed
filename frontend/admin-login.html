@@ -141,6 +141,26 @@
         </div>
     </div>
 
+    <!-- Admin Auth Modal -->
+    <div id="adminAuthModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+        z-index:9999; align-items:center; justify-content:center;">
+      <div style="background:white; padding:32px 32px 28px; border-radius:16px; max-width:420px; text-align:center;">
+        <i class="fas fa-shield-alt" style="font-size:40px; color:#667eea; margin-bottom:18px;"></i>
+        <h3 id="adminAuthModalTitle" style="margin-bottom:12px; font-size:22px;">Admin Notice</h3>
+        <p id="adminAuthModalMessage" style="color:#6b7280; margin:0 0 20px; line-height:1.5;">
+          Message goes here.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button id="adminAuthModalPrimaryBtn" class="btn btn-primary" style="padding:10px 18px;">
+            OK
+          </button>
+          <button id="adminAuthModalSecondaryBtn" class="btn" style="background:#e5e7eb; color:#374151; padding:10px 18px;">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
         const API_BASE = '';
 
@@ -151,12 +171,22 @@
             const username = document.getElementById('adminUsername').value;
             const password = document.getElementById('adminPassword').value;
             const token = document.getElementById('adminToken').value;
+
+            if (!username || !password || !token) {
+                openAdminAuthModal({
+                    title: 'Missing Information',
+                    message: 'Please fill in admin username, password, and admin token.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAdminAuthModal
+                });
+                return;
+            }
             
             button.disabled = true;
             button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Authenticating...';
             
             try {
-                // First verify admin credentials
                 const response = await fetch(`${API_BASE}/api/admin/login`, {
                     method: 'POST',
                     headers: {
@@ -172,26 +202,78 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Store admin session
                     localStorage.setItem('admin_token', result.admin_token);
                     localStorage.setItem('admin_user', JSON.stringify(result.admin));
                     
-                    alert('✅ Admin authentication successful!');
-                    
-                    // Redirect to admin panel
-                    window.location.href = 'admin.html';
+                    openAdminAuthModal({
+                        title: 'Admin Login Successful',
+                        message: 'You have been authenticated as an administrator.',
+                        primaryText: 'Go to Admin Panel',
+                        secondaryText: 'Close',
+                        onPrimary: () => {
+                            closeAdminAuthModal();
+                            window.location.href = 'admin.html';
+                        },
+                        onSecondary: closeAdminAuthModal
+                    });
                 } else {
-                    alert('❌ ' + (result.error || 'Admin authentication failed'));
+                    openAdminAuthModal({
+                        title: 'Admin Authentication Failed',
+                        message: result.error || 'Admin authentication failed. Please check your credentials and token.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminAuthModal
+                    });
                 }
                 
             } catch (error) {
                 console.error('Admin login error:', error);
-                alert('Connection error. Please check if the server is running.');
+                openAdminAuthModal({
+                    title: 'Connection Error',
+                    message: 'Unable to reach the server. Please check if the backend is running and try again.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAdminAuthModal
+                });
             } finally {
                 button.disabled = false;
                 button.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login as Admin';
             }
         });
+
+        function openAdminAuthModal(options) {
+            const {
+                title,
+                message,
+                primaryText = 'OK',
+                secondaryText = 'Close',
+                onPrimary,
+                onSecondary
+            } = options;
+
+            const modal = document.getElementById('adminAuthModal');
+            document.getElementById('adminAuthModalTitle').textContent = title;
+            document.getElementById('adminAuthModalMessage').textContent = message;
+
+            const primaryBtn = document.getElementById('adminAuthModalPrimaryBtn');
+            const secondaryBtn = document.getElementById('adminAuthModalSecondaryBtn');
+            primaryBtn.textContent = primaryText;
+            secondaryBtn.textContent = secondaryText;
+
+            primaryBtn.onclick = () => {
+                if (onPrimary) onPrimary();
+            };
+            secondaryBtn.onclick = () => {
+                if (onSecondary) onSecondary();
+                closeAdminAuthModal();
+            };
+
+            modal.style.display = 'flex';
+        }
+
+        function closeAdminAuthModal() {
+            document.getElementById('adminAuthModal').style.display = 'none';
+        }
     </script>
 </body>
 </html>
