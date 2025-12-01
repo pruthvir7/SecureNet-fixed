@@ -377,7 +377,7 @@ def api_login():
             'country': backend_network_info['country'],
             'asn': backend_network_info['asn'],
             'user_agent': frontend_network_info.get('user_agent', request.headers.get('User-Agent', '')),
-            'device_fingerprint': frontend_network_info.get('device_fingerprint')  # ← ADD THIS LINE
+            'device_fingerprint': frontend_network_info.get('device_fingerprint')
         }
         
         print(f"🌍 Login from: {network_info['country']} | IP: {network_info['ip_address']}")
@@ -433,7 +433,41 @@ def api_login():
         ml_risk_level = auth_result.get('final_risk_level', 'Low Risk')
         print(f"🎯 ML Risk Level: {ml_risk_level}")
         
-        # === CHECK FOR NEW DEVICE/LOCATION AND ADJUST RISK ===
+        # === CHECK IF THIS IS FIRST LOGIN ===
+        profile = auth_engine.get_user_profile(user['profile_id'])
+        is_first_login = profile.successful_logins == 0
+        
+        if is_first_login:
+            print("✓ FIRST LOGIN - Auto-approving to establish baseline (no alerts)")
+            
+            # Auto-approve first login
+            db.reset_failed_attempts(user['id'])
+            token = generate_token(user['id'])
+            
+            # Log as success
+            status = 'success'
+            db.log_auth_attempt(user['id'], status, auth_result)
+            
+            update_dashboard_stats('login_success', {
+                'username': username,
+                'country': network_info['country'],
+                'ip_address': network_info['ip_address'],
+                'risk_level': 'Low Risk (First Login)',
+                'risk_score': 1
+            })
+            
+            return jsonify({
+                'success': True,
+                'token': token,
+                'user': {
+                    'username': user['username'],
+                    'email': user['email']
+                },
+                'security_analysis': auth_result,
+                'first_login': True
+            }), 200
+        
+        # === CHECK FOR NEW DEVICE/LOCATION AND ADJUST RISK (SKIP FOR FIRST LOGIN) ===
         device_boost = 0
         location_boost = 0
         risk_boost_reasons = []
@@ -660,6 +694,7 @@ def api_login():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 
 
 
