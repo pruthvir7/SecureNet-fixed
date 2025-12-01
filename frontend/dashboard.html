@@ -320,14 +320,9 @@
             
                     // MFA reminder popup
                     if (!profile.user.mfa_enabled) {
-                        const lastDismissed = localStorage.getItem('mfa_reminder_dismissed');
-                        const daysSince = lastDismissed
-                            ? (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24)
-                            : 999;  // show if never dismissed
-                        if (daysSince > 7) {
-                            document.getElementById('mfaReminderModal').style.display = 'flex';
-                        }
+                        document.getElementById('mfaReminderModal').style.display = 'flex';
                     }
+
                 }
             } catch (error) {
                 console.error('Error loading profile:', error);
