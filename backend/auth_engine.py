@@ -32,28 +32,28 @@ class UserBehavioralProfile:
         self.last_login = None
     
         def capture_registration_baseline(self, registration_data):
-        """Capture initial baseline during registration."""
-        keystroke_timings = registration_data.get('keystroke_timings', [])
-        network_info = registration_data.get('network_info', {})
-    
-        device_fingerprint = network_info.get('device_fingerprint', 'unknown')
-        current_country = network_info.get('country', 'US')
-        current_asn = network_info.get('asn', '0')
-        registration_ip = network_info.get('ip_address')
-    
-        # Initialize network baseline with ALL needed lists
-        self.network_baseline = {
-            'registration_ip': registration_ip,
-            'registration_country': current_country,
-            'typical_countries': [current_country],
-            'typical_devices': [device_fingerprint],
-            'typical_asns': [current_asn],
-            'typical_ips': [registration_ip] if registration_ip else [],  # ← add this
-            'typical_login_hours': [datetime.now().hour],
-            'registration_time': datetime.now().isoformat(),
-            'blacklisted_ips': [],
-            'country_login_counts': {current_country: 1}
-        }
+            """Capture initial baseline during registration."""
+            keystroke_timings = registration_data.get('keystroke_timings', [])
+            network_info = registration_data.get('network_info', {})
+        
+            device_fingerprint = network_info.get('device_fingerprint', 'unknown')
+            current_country = network_info.get('country', 'US')
+            current_asn = network_info.get('asn', '0')
+            registration_ip = network_info.get('ip_address')
+        
+            # Initialize network baseline with ALL needed lists
+            self.network_baseline = {
+                'registration_ip': registration_ip,
+                'registration_country': current_country,
+                'typical_countries': [current_country],
+                'typical_devices': [device_fingerprint],
+                'typical_asns': [current_asn],
+                'typical_ips': [registration_ip] if registration_ip else [],  # ← add this
+                'typical_login_hours': [datetime.now().hour],
+                'registration_time': datetime.now().isoformat(),
+                'blacklisted_ips': [],
+                'country_login_counts': {current_country: 1}
+            }
             
         # Calculate keystroke baseline if data exists
         if keystroke_timings and len(keystroke_timings) > 0:
