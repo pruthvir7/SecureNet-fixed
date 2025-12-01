@@ -290,20 +290,36 @@ def api_register():
         if db.user_exists(username):
             return jsonify({'error': 'Username already exists'}), 400
         
-        # Hash password - CRITICAL: Must be bytes, then decoded to string
+        # Hash password
         password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
         
-        print(f"✓ Generated hash for '{username}': {password_hash[:20]}...")  # Debug
-        print(f"  Hash length: {len(password_hash)}")  # Should be ~60 chars
+        print(f"✓ Generated hash for '{username}': {password_hash[:20]}...")
+        print(f"  Hash length: {len(password_hash)}")
+        
+        # Get client IP and location
+        client_ip = get_client_ip()
+        backend_network_info = get_ip_location(client_ip)
+        
+        # Merge frontend and backend network info
+        frontend_network_info = data.get('network_info', {})
+        network_info = {
+            'ip_address': backend_network_info['ip_address'],
+            'country': backend_network_info['country'],
+            'asn': backend_network_info['asn'],
+            'user_agent': frontend_network_info.get('user_agent', ''),
+            'device_fingerprint': frontend_network_info.get('device_fingerprint')
+        }
+        
+        print(f"📍 Registration from: {network_info['country']} | Device: {network_info.get('device_fingerprint', 'None')[:20]}...")
         
         # Create behavioral profile
         profile_id = username
         profile = UserBehavioralProfile(profile_id)
         
-        # Capture registration baseline
+        # Capture registration baseline with network info
         registration_data = {
             'keystroke_timings': data.get('keystroke_timings', []),
-            'network_info': data.get('network_info', {})
+            'network_info': network_info  # ← Include device/location
         }
         profile.capture_registration_baseline(registration_data)
         
@@ -314,6 +330,21 @@ def api_register():
         user_id = db.create_user(username, email, password_hash, profile_id)
         
         print(f"✓ User created with ID: {user_id}")
+        
+        # Log the registration as the first "auth attempt" to store device/location
+        registration_result = {
+            'success': True,
+            'final_risk_level': 'Low Risk',
+            'ml_prediction': 'Registration',
+            'keystroke_deviation': 'N/A (Registration)',
+            'flags': [],
+            'network_info': network_info,
+            'edns_security': {}
+        }
+        
+        db.log_auth_attempt(user_id, 'success', registration_result)
+        
+        print(f"✓ Registration baseline saved: {network_info['country']}, device: {network_info.get('device_fingerprint', 'None')[:20]}")
         
         return jsonify({
             'success': True,
