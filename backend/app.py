@@ -523,16 +523,16 @@ def mask_email(email):
     return email
 
 
-SENDGRID_API_KEY = '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'
+resend.api_key = "re_j4es8ihu_744rriWaTJTsTXanSt1xyifi"
 
 def send_email_otp(recipient, otp, username):
-    """Send OTP via SendGrid."""
+    """Send OTP via Resend."""
     try:
-        message = Mail(
-            from_email='securenet220@gmail.com',
-            to_emails=recipient,
-            subject='SecureNet - Verification Code',
-            html_content=f'''
+        params = {
+            "from": "SecureNet <onboarding@resend.dev>",  # Use resend.dev for testing
+            "to": [recipient],
+            "subject": "SecureNet - Verification Code",
+            "html": f'''
                 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
                     <h2 style="color: white; margin: 0;">🛡️ SecureNet Verification</h2>
@@ -547,21 +547,19 @@ def send_email_otp(recipient, otp, username):
                     <p style="color: #ef4444; font-weight: 600;">⏱️ This code expires in 5 minutes.</p>
                     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
                     <p style="color: #6b7280; font-size: 0.875rem;">
-                        🔒 If you didn't attempt to login, please secure your account immediately by changing your password.
+                        🔒 If you didn't attempt to login, please secure your account immediately.
                     </p>
                 </div>
                 </div>
             '''
-        )
-        sg = SendGridAPIClient(SENDGRID_API_KEY)
-        response = sg.send(message)
-        print(f"✉️ OTP sent to {recipient}: {otp} (SendGrid status: {response.status_code})")
+        }
+        
+        email = resend.Emails.send(params)
+        print(f"✉️ OTP sent to {recipient}: {otp} (Resend ID: {email['id']})")
         return True
     except Exception as e:
         print(f"❌ Email send error: {e}")
         return False
-
-
 
 
 @app.route('/api/verify-mfa', methods=['POST'])
