@@ -265,7 +265,6 @@
 
         <!-- Users Tab -->
         <div id="users-tab" class="tab-content active">
-
             <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
                 <div class="search-box" style="flex:1; margin-right:10px;">
                     <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
@@ -395,21 +394,61 @@
         </div>
     </div>
 
+    <!-- Admin dialog modal (for confirmations / messages) -->
+    <div id="adminDialog" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+        z-index:9999; align-items:center; justify-content:center;">
+      <div style="background:white; padding:32px 32px 28px; border-radius:16px; max-width:420px; text-align:center;">
+        <i class="fas fa-shield-alt" style="font-size:40px; color:#667eea; margin-bottom:18px;"></i>
+        <h3 id="adminDialogTitle" style="margin-bottom:12px; font-size:22px;">Admin Action</h3>
+        <p id="adminDialogMessage" style="color:#6b7280; margin:0 0 20px; line-height:1.5;">
+          Message goes here.
+        </p>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button id="adminDialogPrimaryBtn" class="btn btn-primary" style="padding:10px 18px;">
+            OK
+          </button>
+          <button id="adminDialogSecondaryBtn" class="btn" style="background:#e5e7eb; color:#374151; padding:10px 18px;">
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+
     <script>
         if (!localStorage.getItem('admin_token')) {
-            alert('⚠️ Admin authentication required');
-            window.location.href = 'admin-login.html';
+            openAdminDialog({
+                title: 'Admin Authentication Required',
+                message: 'You must log in as an administrator to access this page.',
+                primaryText: 'Go to Admin Login',
+                secondaryText: 'Close',
+                onPrimary: () => {
+                    closeAdminDialog();
+                    window.location.href = 'admin-login.html';
+                },
+                onSecondary: () => {
+                    closeAdminDialog();
+                    window.location.href = 'admin-login.html';
+                }
+            });
         }
 
         const ADMIN_TOKEN = 'admin_secret_token_2024'; // must match backend
         const API_BASE = '';
 
         function adminLogout() {
-            if (confirm('Are you sure you want to logout?')) {
-                localStorage.removeItem('admin_token');
-                localStorage.removeItem('admin_user');
-                window.location.href = 'admin-login.html';
-            }
+            openAdminDialog({
+                title: 'Logout Admin',
+                message: 'Are you sure you want to log out of the admin panel?',
+                primaryText: 'Logout',
+                secondaryText: 'Cancel',
+                onPrimary: () => {
+                    localStorage.removeItem('admin_token');
+                    localStorage.removeItem('admin_user');
+                    closeAdminDialog();
+                    window.location.href = 'admin-login.html';
+                },
+                onSecondary: closeAdminDialog
+            });
         }
 
         document.addEventListener('DOMContentLoaded', function() {
@@ -472,19 +511,19 @@
                                 onclick="openEditUser(${user.id}, '${user.username}', '${user.email}')">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
-                            <button class="action-btn danger" onclick="deleteUser(${user.id})">
+                            <button class="action-btn danger" onclick="confirmDeleteUser(${user.id})">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                             ${user.is_locked ? `
-                                <button class="action-btn primary" onclick="unlockUser(${user.id})">
+                                <button class="action-btn primary" onclick="confirmUnlockUser(${user.id})">
                                     <i class="fas fa-unlock"></i> Unlock
                                 </button>
                             ` : `
-                                <button class="action-btn danger" onclick="blockUser(${user.id})">
+                                <button class="action-btn danger" onclick="confirmBlockUser(${user.id})">
                                     <i class="fas fa-ban"></i> Block
                                 </button>
                             `}
-                            <button class="action-btn danger" onclick="resetMFA(${user.id})">
+                            <button class="action-btn danger" onclick="confirmResetMFA(${user.id})">
                                 <i class="fas fa-redo"></i> Reset MFA
                             </button>
                         </td>
@@ -547,7 +586,7 @@
                         <td><span class="badge danger">${ip.blocked}</span></td>
                         <td>${lastAttempt}</td>
                         <td>
-                            <button class="action-btn danger" onclick="blockIP('${ip.ip_address}')">
+                            <button class="action-btn danger" onclick="confirmBlockIP('${ip.ip_address}')">
                                 <i class="fas fa-ban"></i> Blacklist
                             </button>
                         </td>
@@ -559,18 +598,85 @@
             }
         }
 
+        // Confirmation wrappers
+        function confirmUnlockUser(userId) {
+            openAdminDialog({
+                title: 'Unlock User',
+                message: 'Unlock this user account and reset failed attempts?',
+                primaryText: 'Unlock',
+                secondaryText: 'Cancel',
+                onPrimary: () => { closeAdminDialog(); unlockUser(userId); },
+                onSecondary: closeAdminDialog
+            });
+        }
+
+        function confirmBlockUser(userId) {
+            openAdminDialog({
+                title: 'Block User',
+                message: 'Block this user account from logging in?',
+                primaryText: 'Block',
+                secondaryText: 'Cancel',
+                onPrimary: () => { closeAdminDialog(); blockUser(userId); },
+                onSecondary: closeAdminDialog
+            });
+        }
+
+        function confirmResetMFA(userId) {
+            openAdminDialog({
+                title: 'Reset MFA',
+                message: 'Reset MFA for this user? They will need to set it up again.',
+                primaryText: 'Reset MFA',
+                secondaryText: 'Cancel',
+                onPrimary: () => { closeAdminDialog(); resetMFA(userId); },
+                onSecondary: closeAdminDialog
+            });
+        }
+
+        function confirmDeleteUser(userId) {
+            openAdminDialog({
+                title: 'Delete User',
+                message: 'Permanently delete this user and their data?',
+                primaryText: 'Delete',
+                secondaryText: 'Cancel',
+                onPrimary: () => { closeAdminDialog(); deleteUser(userId); },
+                onSecondary: closeAdminDialog
+            });
+        }
+
+        function confirmBlockIP(ip) {
+            openAdminDialog({
+                title: 'Blacklist IP',
+                message: `Blacklist IP address ${ip}? Future logins from this IP will be blocked.`,
+                primaryText: 'Blacklist',
+                secondaryText: 'Cancel',
+                onPrimary: () => { closeAdminDialog(); blockIP(ip); },
+                onSecondary: closeAdminDialog
+            });
+        }
+
         async function unlockUser(userId) {
-            if (!confirm('Unlock this user account?')) return;
             try {
                 const res = await fetch(`${API_BASE}/api/admin/users/${userId}/unlock`, {
                     method: 'POST',
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 if (res.ok) {
-                    alert('User unlocked successfully');
-                    loadUsers();
+                    openAdminDialog({
+                        title: 'User Unlocked',
+                        message: 'User account unlocked successfully.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: () => { closeAdminDialog(); loadUsers(); },
+                        onSecondary: () => { closeAdminDialog(); loadUsers(); }
+                    });
                 } else {
-                    alert('Failed to unlock user');
+                    openAdminDialog({
+                        title: 'Unlock Failed',
+                        message: 'Failed to unlock user.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminDialog
+                    });
                 }
             } catch (error) {
                 console.error('Error unlocking user:', error);
@@ -578,17 +684,28 @@
         }
 
         async function blockUser(userId) {
-            if (!confirm('Block this user account?')) return;
             try {
                 const res = await fetch(`${API_BASE}/api/admin/users/${userId}/block`, {
                     method: 'POST',
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 if (res.ok) {
-                    alert('User blocked');
-                    loadUsers();
+                    openAdminDialog({
+                        title: 'User Blocked',
+                        message: 'User account has been blocked.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: () => { closeAdminDialog(); loadUsers(); },
+                        onSecondary: () => { closeAdminDialog(); loadUsers(); }
+                    });
                 } else {
-                    alert('Failed to block user');
+                    openAdminDialog({
+                        title: 'Block Failed',
+                        message: 'Failed to block user.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminDialog
+                    });
                 }
             } catch (error) {
                 console.error('Error blocking user:', error);
@@ -596,17 +713,28 @@
         }
 
         async function resetMFA(userId) {
-            if (!confirm('Reset MFA for this user?')) return;
             try {
                 const res = await fetch(`${API_BASE}/api/admin/users/${userId}/reset-mfa`, {
                     method: 'POST',
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 if (res.ok) {
-                    alert('MFA reset successfully');
-                    loadUsers();
+                    openAdminDialog({
+                        title: 'MFA Reset',
+                        message: 'MFA has been reset for this user.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: () => { closeAdminDialog(); loadUsers(); },
+                        onSecondary: () => { closeAdminDialog(); loadUsers(); }
+                    });
                 } else {
-                    alert('Failed to reset MFA');
+                    openAdminDialog({
+                        title: 'Reset Failed',
+                        message: 'Failed to reset MFA.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminDialog
+                    });
                 }
             } catch (error) {
                 console.error('Error resetting MFA:', error);
@@ -614,17 +742,28 @@
         }
 
         async function deleteUser(userId) {
-            if (!confirm('Delete this user?')) return;
             try {
                 const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
                     method: 'DELETE',
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 if (res.ok) {
-                    alert('User deleted');
-                    loadUsers();
+                    openAdminDialog({
+                        title: 'User Deleted',
+                        message: 'User has been deleted.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: () => { closeAdminDialog(); loadUsers(); },
+                        onSecondary: () => { closeAdminDialog(); loadUsers(); }
+                    });
                 } else {
-                    alert('Failed to delete user');
+                    openAdminDialog({
+                        title: 'Delete Failed',
+                        message: 'Failed to delete user.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminDialog
+                    });
                 }
             } catch (error) {
                 console.error('Error deleting user:', error);
@@ -632,7 +771,6 @@
         }
 
         async function blockIP(ipAddress) {
-            if (!confirm(`Blacklist IP ${ipAddress}?`)) return;
             try {
                 const res = await fetch(`${API_BASE}/api/admin/block-ip`, {
                     method: 'POST',
@@ -643,10 +781,22 @@
                     body: JSON.stringify({ ip: ipAddress })
                 });
                 if (res.ok) {
-                    alert('IP blacklisted');
-                    loadThreats();
+                    openAdminDialog({
+                        title: 'IP Blacklisted',
+                        message: 'The IP address has been added to the blacklist.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: () => { closeAdminDialog(); loadThreats(); },
+                        onSecondary: () => { closeAdminDialog(); loadThreats(); }
+                    });
                 } else {
-                    alert('Failed to blacklist IP');
+                    openAdminDialog({
+                        title: 'Blacklist Failed',
+                        message: 'Failed to blacklist IP address.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminDialog
+                    });
                 }
             } catch (error) {
                 console.error('Error blacklisting IP:', error);
@@ -661,7 +811,6 @@
         }
 
         function searchUsers() {
-            // Optionally implement server-side filtering using query param
             const search = document.getElementById('userSearch').value.toLowerCase();
             const rows = document.querySelectorAll('#usersTableBody tr');
             rows.forEach(r => {
@@ -716,15 +865,32 @@
                     body: JSON.stringify(body)
                 });
                 if (res.ok) {
-                    alert('User created');
-                    closeUserModal();
-                    loadUsers();
+                    openAdminDialog({
+                        title: 'User Created',
+                        message: 'User created successfully.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: () => { closeAdminDialog(); closeUserModal(); loadUsers(); },
+                        onSecondary: () => { closeAdminDialog(); closeUserModal(); loadUsers(); }
+                    });
                 } else {
-                    alert('Failed to create user');
+                    openAdminDialog({
+                        title: 'Create Failed',
+                        message: 'Failed to create user.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminDialog
+                    });
                 }
             } catch (e) {
                 console.error(e);
-                alert('Error creating user');
+                openAdminDialog({
+                    title: 'Error',
+                    message: 'Error creating user.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAdminDialog
+                });
             }
         }
 
@@ -745,16 +911,68 @@
                     body: JSON.stringify(body)
                 });
                 if (res.ok) {
-                    alert('User updated');
-                    closeUserModal();
-                    loadUsers();
+                    openAdminDialog({
+                        title: 'User Updated',
+                        message: 'User details updated successfully.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: () => { closeAdminDialog(); closeUserModal(); loadUsers(); },
+                        onSecondary: () => { closeAdminDialog(); closeUserModal(); loadUsers(); }
+                    });
                 } else {
-                    alert('Failed to update user');
+                    openAdminDialog({
+                        title: 'Update Failed',
+                        message: 'Failed to update user.',
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAdminDialog
+                    });
                 }
             } catch (e) {
                 console.error(e);
-                alert('Error updating user');
+                openAdminDialog({
+                    title: 'Error',
+                    message: 'Error updating user.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAdminDialog
+                });
             }
+        }
+
+        // Admin dialog helpers
+        function openAdminDialog(options) {
+            const {
+                title,
+                message,
+                primaryText = 'OK',
+                secondaryText = 'Cancel',
+                onPrimary,
+                onSecondary
+            } = options;
+
+            const modal = document.getElementById('adminDialog');
+            document.getElementById('adminDialogTitle').textContent = title;
+            document.getElementById('adminDialogMessage').textContent = message;
+
+            const primaryBtn = document.getElementById('adminDialogPrimaryBtn');
+            const secondaryBtn = document.getElementById('adminDialogSecondaryBtn');
+            primaryBtn.textContent = primaryText;
+            secondaryBtn.textContent = secondaryText;
+
+            primaryBtn.onclick = () => {
+                if (onPrimary) onPrimary();
+            };
+            secondaryBtn.onclick = () => {
+                if (onSecondary) onSecondary();
+                closeAdminDialog();
+            };
+
+            modal.style.display = 'flex';
+        }
+
+        function closeAdminDialog() {
+            document.getElementById('adminDialog').style.display = 'none';
         }
     </script>
 </body>
