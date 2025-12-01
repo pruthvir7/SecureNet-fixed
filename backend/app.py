@@ -33,6 +33,7 @@ from sendgrid import SendGridAPIClient
 from sendgrid.helpers.mail import Mail
 import random
 from backend.admin_routes import admin_bp
+import resend
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
