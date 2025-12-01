@@ -40,7 +40,6 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from backend.edns_integration import EDNSSecurityLayer
 from backend.models import DatabaseManager
-from backend.models import User
 
 
 # Initialize Flask app
@@ -91,6 +90,30 @@ db = DatabaseManager(
     database='defaultdb',
     port=10675
 )
+
+@app.route('/api/check-availability')
+def check_availability():
+    username = request.args.get('username')
+    email = request.args.get('email')
+
+    username_taken = False
+    email_taken = False
+
+    if username:
+        # reuse existing helper
+        username_taken = db.user_exists(username)
+
+    if email:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute('SELECT id FROM users WHERE email = %s', (email,))
+            email_taken = cursor.fetchone() is not None
+
+    return jsonify({
+        'username_taken': username_taken,
+        'email_taken': email_taken
+    })
+
 
 def migrate_database():
     """Run database migrations."""
@@ -1200,29 +1223,6 @@ def api_mfa_setup():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
-
-@app.route('/api/check-availability')
-def check_availability():
-    username = request.args.get('username', '').strip()
-    email = request.args.get('email', '').strip()
-
-    username_taken = False
-    email_taken = False
-
-    if username:
-        user = User.query.filter_by(username=username).first()
-        username_taken = user is not None
-
-    if email:
-        user = User.query.filter_by(email=email).first()
-        email_taken = user is not None
-
-    return jsonify({
-        "username_taken": username_taken,
-        "email_taken": email_taken
-    })
-
 
 
 @app.route('/api/mfa/verify-setup', methods=['POST'])
