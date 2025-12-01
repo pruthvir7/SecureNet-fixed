@@ -40,6 +40,8 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from backend.edns_integration import EDNSSecurityLayer
 from backend.models import DatabaseManager
+from backend.models import User
+
 
 # Initialize Flask app
 app = Flask(__name__, 
