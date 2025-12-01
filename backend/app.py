@@ -317,6 +317,24 @@ def api_login():
         # Verify password
         if not bcrypt.check_password_hash(user['password_hash'], password):
             db.increment_failed_attempts(user['id'])
+            
+            # === ALERT: Check if account should be locked ===
+            failed_attempts = user.get('failed_attempts', 0) + 1
+            if failed_attempts >= 5:
+                db.lock_user_account(user['id'])
+                
+                # 🔔 Send account locked alert
+                send_security_alert_email(
+                    recipient=user['email'],
+                    username=username,
+                    alert_type='account_locked',
+                    details={
+                        'failed_attempts': failed_attempts,
+                        'ip_address': get_client_ip(),
+                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                )
+            
             return jsonify({'error': 'Invalid credentials'}), 401
         
         # Get REAL client IP and location from backend
@@ -356,6 +374,18 @@ def api_login():
         if backend_network_info.get('is_vpn'):
             edns_boost += 2
             print(f"🚨 VPN/Proxy detected via IPHub")
+            
+            # 🔔 Send VPN detected alert
+            send_security_alert_email(
+                recipient=user['email'],
+                username=username,
+                alert_type='vpn_detected',
+                details={
+                    'country': network_info['country'],
+                    'ip_address': client_ip,
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            )
         
         print(f"Final EDNS boost: {edns_boost}")
         
@@ -376,6 +406,54 @@ def api_login():
         # ADAPTIVE MFA BASED ON RISK LEVEL
         risk_level = auth_result.get('final_risk_level', 'Low Risk')
         print(f"🎯 Risk Level: {risk_level}")
+        
+        # === ALERT: Check for new location ===
+        user_countries = db.get_user_login_countries(user['id'])
+        if network_info['country'] not in user_countries:
+            send_security_alert_email(
+                recipient=user['email'],
+                username=username,
+                alert_type='new_location',
+                details={
+                    'country': network_info['country'],
+                    'ip_address': client_ip,
+                    'city': backend_network_info.get('city', 'Unknown'),
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            )
+        
+        # === ALERT: Check for new device ===
+        device_fp = frontend_network_info.get('device_fingerprint')
+        if device_fp:
+            user_devices = db.get_user_devices(user['id'])
+            if device_fp not in user_devices:
+                send_security_alert_email(
+                    recipient=user['email'],
+                    username=username,
+                    alert_type='new_device',
+                    details={
+                        'device': frontend_network_info.get('platform', 'Unknown'),
+                        'browser': network_info.get('user_agent', 'Unknown')[:80],
+                        'location': network_info['country'],
+                        'ip_address': client_ip,
+                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                    }
+                )
+        
+        # === ALERT: Check for high-risk/suspicious login ===
+        if risk_level in ['High Risk', 'Critical Risk']:
+            send_security_alert_email(
+                recipient=user['email'],
+                username=username,
+                alert_type='suspicious_login',
+                details={
+                    'risk_level': risk_level,
+                    'reason': auth_result.get('ml_prediction', 'Behavioral anomaly detected'),
+                    'location': network_info['country'],
+                    'ip_address': client_ip,
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            )
         
         if risk_level == 'Low Risk':
             # ============================================
@@ -496,6 +574,7 @@ def api_login():
         return jsonify({'error': str(e)}), 500
 
 
+
 def generate_otp():
     """Generate 6-digit OTP."""
     return str(random.randint(100000, 999999))
@@ -561,6 +640,158 @@ def send_email_otp(recipient, otp, username):
     except Exception as e:
         print(f"❌ Email send error: {e}")
         return False
+
+def send_security_alert_email(recipient, username, alert_type, details):
+    """
+    Send security alert email using Resend.
+    
+    Alert types:
+    - new_device: Login from new device
+    - new_location: Login from new country/location
+    - suspicious_login: High-risk login attempt
+    - account_locked: Account locked due to failed attempts
+    - password_changed: Password was changed
+    - mfa_enabled: MFA was enabled/disabled
+    - bot_detected: Bot attack blocked
+    - vpn_detected: VPN/Proxy login
+    """
+    
+    # Alert-specific content
+    alert_configs = {
+        'new_device': {
+            'emoji': '📱',
+            'title': 'New Device Login',
+            'color': '#f59e0b',
+            'message': 'A login was detected from a new device.',
+            'action': 'If this was you, you can ignore this message. Otherwise, secure your account immediately.'
+        },
+        'new_location': {
+            'emoji': '🌍',
+            'title': 'New Location Login',
+            'color': '#f59e0b',
+            'message': f'A login was detected from {details.get("country", "an unknown location")} ({details.get("ip_address", "unknown IP")}).',
+            'action': 'If this was you, no action needed. Otherwise, change your password immediately.'
+        },
+        'suspicious_login': {
+            'emoji': '⚠️',
+            'title': 'Suspicious Login Attempt',
+            'color': '#ef4444',
+            'message': 'A suspicious login attempt was detected and blocked.',
+            'action': 'We recommend changing your password and enabling MFA if you haven\'t already.'
+        },
+        'account_locked': {
+            'emoji': '🔒',
+            'title': 'Account Locked',
+            'color': '#ef4444',
+            'message': f'Your account has been locked after {details.get("failed_attempts", 5)} failed login attempts.',
+            'action': 'Please contact support to unlock your account or wait 30 minutes.'
+        },
+        'password_changed': {
+            'emoji': '🔑',
+            'title': 'Password Changed',
+            'color': '#10b981',
+            'message': 'Your password was successfully changed.',
+            'action': 'If you didn\'t make this change, contact support immediately.'
+        },
+        'mfa_enabled': {
+            'emoji': '🛡️',
+            'title': 'MFA Status Changed',
+            'color': '#3b82f6',
+            'message': f'Multi-factor authentication was {"enabled" if details.get("enabled") else "disabled"} on your account.',
+            'action': 'If you didn\'t make this change, contact support immediately.'
+        },
+        'bot_detected': {
+            'emoji': '🤖',
+            'title': 'Bot Attack Blocked',
+            'color': '#ef4444',
+            'message': 'A bot attack targeting your account was detected and blocked.',
+            'action': 'Your account is safe. Consider enabling MFA for extra security.'
+        },
+        'vpn_detected': {
+            'emoji': '🔐',
+            'title': 'VPN/Proxy Login',
+            'color': '#f59e0b',
+            'message': f'A login via VPN or proxy was detected from {details.get("country", "unknown location")}.',
+            'action': 'We sent a verification code to confirm it\'s you.'
+        }
+    }
+    
+    config = alert_configs.get(alert_type, {
+        'emoji': '⚠️',
+        'title': 'Security Alert',
+        'color': '#6b7280',
+        'message': 'A security event occurred on your account.',
+        'action': 'Please review your recent account activity.'
+    })
+    
+    # Build details table
+    details_html = ''
+    if details:
+        details_html = '<div style="background: #f9fafb; padding: 15px; border-radius: 8px; margin: 20px 0;">'
+        details_html += '<h3 style="margin: 0 0 10px 0; font-size: 14px; color: #6b7280;">Event Details:</h3>'
+        
+        for key, value in details.items():
+            if key not in ['enabled']:
+                label = key.replace('_', ' ').title()
+                details_html += f'<p style="margin: 5px 0; font-size: 13px;"><strong>{label}:</strong> {value}</p>'
+        
+        details_html += '</div>'
+    
+    try:
+        params = {
+            "from": "SecureNet <onboarding@resend.dev>",
+            "to": [recipient],
+            "subject": f"SecureNet - {config['title']}",
+            "html": f'''
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 10px 10px 0 0;">
+                        <h2 style="color: white; margin: 0;">🛡️ SecureNet Security Alert</h2>
+                    </div>
+                    
+                    <div style="padding: 30px; background: white; border-radius: 0 0 10px 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                        <div style="background: {config["color"]}; color: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                            <h1 style="margin: 0; font-size: 48px;">{config["emoji"]}</h1>
+                            <h2 style="margin: 10px 0 0 0; font-size: 20px;">{config["title"]}</h2>
+                        </div>
+                        
+                        <p>Hello <strong>{username}</strong>,</p>
+                        
+                        <p style="font-size: 15px; line-height: 1.6;">{config["message"]}</p>
+                        
+                        {details_html}
+                        
+                        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0;">
+                            <p style="margin: 0; color: #92400e; font-weight: 600;">
+                                <strong>What should I do?</strong>
+                            </p>
+                            <p style="margin: 10px 0 0 0; color: #92400e;">
+                                {config["action"]}
+                            </p>
+                        </div>
+                        
+                        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+                        
+                        <p style="color: #6b7280; font-size: 13px;">
+                            <strong>Time:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}<br>
+                            <strong>Account:</strong> {username}
+                        </p>
+                        
+                        <p style="color: #6b7280; font-size: 12px; margin-top: 20px;">
+                            This is an automated security alert from SecureNet. If you have questions, please contact support.
+                        </p>
+                    </div>
+                </div>
+            '''
+        }
+        
+        email = resend.Emails.send(params)
+        print(f"🔔 Security alert sent to {recipient}: {alert_type} (Resend ID: {email['id']})")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Alert email error: {e}")
+        return False
+
 
 
 @app.route('/api/verify-mfa', methods=['POST'])
@@ -756,6 +987,18 @@ def api_mfa_verify_setup():
             # Enable MFA
             db.enable_user_mfa(user['id'])
             
+            # 🔔 Send MFA enabled alert
+            send_security_alert_email(
+                recipient=user['email'],
+                username=username,
+                alert_type='mfa_enabled',
+                details={
+                    'enabled': True,
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    'ip_address': get_client_ip()
+                }
+            )
+            
             return jsonify({
                 'success': True,
                 'message': 'MFA enabled successfully!'
@@ -769,6 +1012,7 @@ def api_mfa_verify_setup():
     except Exception as e:
         print(f"MFA verify setup error: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 @app.route('/api/mfa/verify', methods=['POST'])
@@ -850,6 +1094,18 @@ def api_mfa_disable():
         # Disable MFA
         db.disable_user_mfa(user['id'])
         
+        # 🔔 Send MFA disabled alert
+        send_security_alert_email(
+            recipient=user['email'],
+            username=username,
+            alert_type='mfa_enabled',
+            details={
+                'enabled': False,
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'ip_address': get_client_ip()
+            }
+        )
+        
         return jsonify({
             'success': True,
             'message': 'MFA disabled successfully'
@@ -858,6 +1114,7 @@ def api_mfa_disable():
     except Exception as e:
         print(f"MFA disable error: {e}")
         return jsonify({'error': str(e)}), 500
+
 
 
 # =====================================================================
