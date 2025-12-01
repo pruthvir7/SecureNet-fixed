@@ -99,6 +99,7 @@ class DatabaseManager:
                     country VARCHAR(10),
                     user_agent TEXT,
                     edns_threats TEXT,
+                    details JSON,
                     timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
                     INDEX idx_user_id (user_id),
@@ -183,21 +184,30 @@ class DatabaseManager:
             else:
                 behavioral_dev = 0
             
+            # Store full result in details JSON field
+            network_info = result.get('network_info', {})
+            details_json = json.dumps({
+                'country': network_info.get('country'),
+                'device_fingerprint': network_info.get('device_fingerprint'),
+                'network_info': network_info
+            })
+            
             cursor.execute('''
                 INSERT INTO auth_logs (
                     user_id, status, risk_level, ml_prediction,
                     behavioral_deviation, flags, edns_threats,
-                    ip_address, country, user_agent
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ip_address, country, user_agent, details
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''', (
                 user_id, status,
                 result.get('final_risk_level'),
                 result.get('ml_prediction'),
                 behavioral_dev,
                 flags_json, edns_threats,
-                result.get('network_info', {}).get('ip_address'),
-                result.get('network_info', {}).get('country'),
-                result.get('network_info', {}).get('user_agent', '')[:500]
+                network_info.get('ip_address'),
+                network_info.get('country'),
+                network_info.get('user_agent', '')[:500],
+                details_json
             ))
             
             today = datetime.now().date()
@@ -289,7 +299,7 @@ class DatabaseManager:
     def get_user_auth_history(self, user_id, limit=10):
         """Get user authentication history."""
         try:
-            with self.get_connection() as conn:  # ← USE CONTEXT MANAGER
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     SELECT 
@@ -326,7 +336,7 @@ class DatabaseManager:
         
     def update_user_mfa(self, user_id, secret, backup_codes, enabled=False):
         try:
-            with self.get_connection() as conn:  # ← USE CONTEXT MANAGER
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE users 
@@ -342,7 +352,7 @@ class DatabaseManager:
     def enable_user_mfa(self, user_id):
         """Enable MFA for user."""
         try:
-            with self.get_connection() as conn:  # ← USE CONTEXT MANAGER
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("UPDATE users SET mfa_enabled = TRUE WHERE id = %s", (user_id,))
                 return True
@@ -354,7 +364,7 @@ class DatabaseManager:
     def disable_user_mfa(self, user_id):
         """Disable MFA for user."""
         try:
-            with self.get_connection() as conn:  # ← USE CONTEXT MANAGER
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE users 
@@ -370,7 +380,7 @@ class DatabaseManager:
     def update_backup_codes(self, user_id, backup_codes):
         """Update backup codes."""
         try:
-            with self.get_connection() as conn:  # ← USE CONTEXT MANAGER
+            with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE users SET backup_codes = %s WHERE id = %s
@@ -427,6 +437,76 @@ class DatabaseManager:
             traceback.print_exc()
             return None
 
+    # =====================================================================
+    # NEW METHODS FOR ALERT SYSTEM
+    # =====================================================================
 
+    def get_user_login_countries(self, user_id):
+        """Get list of countries user has logged in from."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT DISTINCT country 
+                    FROM auth_logs 
+                    WHERE user_id = %s 
+                    AND country IS NOT NULL
+                    AND status = 'success'
+                """, (user_id,))
+                return [row['country'] for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error getting user countries: {e}")
+            return []
 
+    def get_user_devices(self, user_id):
+        """Get list of device fingerprints for user."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    SELECT DISTINCT JSON_EXTRACT(details, '$.device_fingerprint') as device
+                    FROM auth_logs 
+                    WHERE user_id = %s 
+                    AND details IS NOT NULL
+                    AND status = 'success'
+                """, (user_id,))
+                devices = []
+                for row in cursor.fetchall():
+                    if row['device'] and row['device'] != 'null':
+                        # Remove JSON quotes
+                        device = str(row['device']).strip('"')
+                        devices.append(device)
+                return devices
+        except Exception as e:
+            print(f"Error getting user devices: {e}")
+            return []
 
+    def lock_user_account(self, user_id):
+        """Lock user account after too many failed attempts."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE users SET is_locked = TRUE WHERE id = %s",
+                    (user_id,)
+                )
+                print(f"🔒 Account locked for user {user_id}")
+                return True
+        except Exception as e:
+            print(f"Error locking account: {e}")
+            return False
+
+    # def update_user_password(self, user_id, new_password_hash):
+    #     """Update user's password."""
+    #     try:
+    #         with self.get_connection() as conn:
+    #             cursor = conn.cursor()
+    #             cursor.execute(
+    #                 "UPDATE users SET password_hash = %s WHERE id = %s",
+    #                 (new_password_hash, user_id)
+    #             )
+    #             print(f"✓ Password updated for user {user_id}")
+    #             return True
+    #     except Exception as e:
+    #         print(f"Error updating password: {e}")
+    #         return False
