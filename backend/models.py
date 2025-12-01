@@ -343,14 +343,10 @@ class DatabaseManager:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT 
-                        timestamp,
-                        status,
-                        risk_level,
-                        ip_address,
-                        country
+                    SELECT timestamp, status, risk_level, ip_address, country
                     FROM auth_logs
                     WHERE user_id = %s
+                    AND status = 'success'
                     ORDER BY timestamp DESC
                     LIMIT %s
                 """, (user_id, limit))
