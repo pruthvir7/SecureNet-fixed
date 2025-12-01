@@ -534,33 +534,26 @@ def api_login():
                     'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
             )
-        
-        # Check for new device
-        device_fp = frontend_network_info.get('device_fingerprint')
-        is_new_device = False
-        
-        if device_fp:
-            user_devices = db.get_user_devices(user['id'])
-            is_new_device = device_fp not in user_devices
-            
-            if is_new_device:
-                device_boost = 1
-                risk_boost_reasons.append('New device detected')
-                print(f"⚠️ New device detected: {device_fp[:20]}...")
-                
-                # 🔔 Send new device alert
-                send_security_alert_email(
-                    recipient=user['email'],
-                    username=username,
-                    alert_type='new_device',
-                    details={
-                        'device': frontend_network_info.get('platform', 'Unknown'),
-                        'browser': network_info.get('user_agent', 'Unknown')[:80],
-                        'location': network_info['country'],
-                        'ip_address': client_ip,
-                        'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-                    }
-                )
+        user_ips = db.get_user_ips(user['id'])
+        current_ip = network_info['ip_address']
+        is_new_ip = current_ip not in user_ips
+
+        if is_new_ip:
+            device_boost = 1  # Boost risk by 1 level
+            risk_boost_reasons.append('New IP address detected')
+            print(f"⚠️ New IP detected: {current_ip}")
+    
+            # 🔔 Send new IP alert
+            send_security_alert_email(
+                recipient=user['email'],
+                username=username,
+                alert_type='new_ip',
+                details={
+                    'ip_address': current_ip,
+                    'location': network_info['country'],
+                    'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+                }
+            )
         
         # === ADJUST RISK LEVEL BASED ON NEW DEVICE/LOCATION ===
         total_new_factor_boost = device_boost + location_boost
@@ -810,12 +803,12 @@ def send_security_alert_email(recipient, username, alert_type, details):
     
     # Alert-specific content
     alert_configs = {
-        'new_device': {
-            'emoji': '📱',
-            'title': 'New Device Login',
-            'color': '#f59e0b',
-            'message': 'A login was detected from a new device.',
-            'action': 'If this was you, you can ignore this message. Otherwise, secure your account immediately.'
+        'new_ip': {
+        'emoji': '🌐',
+        'title': 'New IP Address Detected',
+        'color': 'f59e0b',
+        'message': f"A login was detected from a new IP address: {details.get('ip_address', 'Unknown')} ({details.get('location', 'Unknown location')}).",
+        'action': "If this was you, no action needed. Otherwise, secure your account immediately."
         },
         'new_location': {
             'emoji': '🌍',
