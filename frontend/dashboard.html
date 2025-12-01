@@ -272,6 +272,23 @@
                 </div>
             </div>
         </div>
+        <!-- MFA Setup Reminder Modal -->
+        <div id="mfaReminderModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); 
+            z-index:9999; align-items:center; justify-content:center;">
+          <div style="background:white; padding:30px; border-radius:12px; max-width:400px; text-align:center;">
+            <i class="fas fa-shield-alt" style="font-size:48px; color:#667eea; margin-bottom:15px;"></i>
+            <h3 style="margin-bottom:10px;">Secure Your Account</h3>
+            <p style="color:#6b7280; margin-bottom:20px;">
+              Set up Multi-Factor Authentication (MFA) to add an extra layer of security to your account.
+            </p>
+            <button onclick="goToMFASetup()" class="btn btn-primary" style="margin-right:10px;">
+              <i class="fas fa-mobile-alt"></i> Set Up Now
+            </button>
+            <button onclick="closeMFAReminder()" class="btn" style="background:#e5e7eb; color:#374151;">
+              Remind Me Later
+            </button>
+          </div>
+        </div>
     </main>
 
     <script src="js/auth.js"></script>
@@ -300,10 +317,22 @@
                     // Update MFA status
                     currentMFAStatus = profile.user.mfa_enabled || false;
                     updateMFAUI(currentMFAStatus);
+            
+                    // MFA reminder popup
+                    if (!profile.user.mfa_enabled) {
+                        const lastDismissed = localStorage.getItem('mfa_reminder_dismissed');
+                        const daysSince = lastDismissed
+                            ? (Date.now() - parseInt(lastDismissed)) / (1000 * 60 * 60 * 24)
+                            : 999;  // show if never dismissed
+                        if (daysSince > 7) {
+                            document.getElementById('mfaReminderModal').style.display = 'flex';
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error loading profile:', error);
             }
+
             
             // Load activity history
             try {
@@ -339,6 +368,16 @@
                 btn.className = 'btn btn-primary';
             }
         }
+
+        function goToMFASetup() {
+            window.location.href = 'mfa-setup.html';
+        }
+        
+        function closeMFAReminder() {
+            document.getElementById('mfaReminderModal').style.display = 'none';
+            localStorage.setItem('mfa_reminder_dismissed', Date.now());
+        }
+
 
         function toggleMFA() {
             if (currentMFAStatus) {
