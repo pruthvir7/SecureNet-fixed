@@ -1335,32 +1335,27 @@ def api_mfa_disable():
 def api_get_profile():
     """Get user profile information."""
     try:
-        # Get token from header
         token = request.headers.get('Authorization', '').replace('Bearer ', '')
         user_id = verify_token(token)
-        
         if not user_id:
             return jsonify({'error': 'Unauthorized'}), 401
-        
-        # Get user data
+
         user = db.get_user_by_id(user_id)
         profile = auth_engine.get_user_profile(user['profile_id'])
-        
-        # FIX: Convert last_login safely
+
+        # Use DB last_login, which you update in reset_failed_attempts
         last_login = None
-        if profile.last_login:
-            if hasattr(profile.last_login, 'isoformat'):
-                last_login = profile.last_login.isoformat()
-            else:
-                last_login = str(profile.last_login)
-        
+        if user.get('last_login'):
+            # user['last_login'] is a datetime from MySQL
+            last_login = str(user['last_login'])
+
         return jsonify({
             'success': True,
             'user': {
                 'username': user['username'],
                 'email': user['email'],
                 'member_since': str(user['created_at']),
-                'mfa_enabled': user.get('mfa_enabled', False)  # ← ADD THIS
+                'mfa_enabled': user.get('mfa_enabled', False)
             },
             'profile': {
                 'successful_logins': profile.successful_logins,
@@ -1369,37 +1364,36 @@ def api_get_profile():
                 'typical_devices': len(profile.network_baseline.get('typical_devices', []))
             }
         }), 200
-        
+
     except Exception as e:
         print(f"Profile error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({'error': 'Internal server error'}), 500
 
-
     
 @app.route('/api/user/auth-history', methods=['GET'])
 def api_auth_history():
     """Get user authentication history."""
     try:
-        # Temporarily skip auth for testing
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        user_id = verify_token(token)
+        if not user_id:
+            return jsonify({'error': 'Unauthorized'}), 401
+
+        history = db.get_user_auth_history(user_id, limit=10)
+
         return jsonify({
             'success': True,
-            'history': [
-                {
-                    'timestamp': '2025-11-23 01:03:41',
-                    'status': 'success',
-                    'risk_level': 'Low Risk',
-                    'country': 'US',
-                    'ip_address': '127.0.0.1',
-                    'keystroke_deviation': '0.0%'
-                }
-            ]
+            'history': history
         }), 200
-        
+
     except Exception as e:
         print(f"History error: {e}")
-        return jsonify({'error': str(e)}), 500
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': 'Internal server error'}), 500
+
 
 
 @app.route('/api/admin/stats', methods=['GET'])
