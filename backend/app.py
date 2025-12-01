@@ -429,17 +429,25 @@ def api_login():
         auth_result['edns_security'] = edns_result
         auth_result['network_info'] = network_info
         
-        # Log auth attempt
-        status = 'success' if auth_result['success'] else 'blocked'
-        db.log_auth_attempt(user['id'], status, auth_result)
+        # Get initial ML risk level
+        ml_risk_level = auth_result.get('final_risk_level', 'Low Risk')
+        print(f"🎯 ML Risk Level: {ml_risk_level}")
         
-        # ADAPTIVE MFA BASED ON RISK LEVEL
-        risk_level = auth_result.get('final_risk_level', 'Low Risk')
-        print(f"🎯 Risk Level: {risk_level}")
+        # === CHECK FOR NEW DEVICE/LOCATION AND ADJUST RISK ===
+        device_boost = 0
+        location_boost = 0
+        risk_boost_reasons = []
         
-        # === ALERT: Check for new location ===
+        # Check for new location
         user_countries = db.get_user_login_countries(user['id'])
-        if network_info['country'] not in user_countries:
+        is_new_location = network_info['country'] not in user_countries
+        
+        if is_new_location:
+            location_boost = 1  # Boost risk by 1 level
+            risk_boost_reasons.append('New location detected')
+            print(f"⚠️ New location detected: {network_info['country']}")
+            
+            # 🔔 Send new location alert
             send_security_alert_email(
                 recipient=user['email'],
                 username=username,
@@ -452,11 +460,20 @@ def api_login():
                 }
             )
         
-        # === ALERT: Check for new device ===
+        # Check for new device
         device_fp = frontend_network_info.get('device_fingerprint')
+        is_new_device = False
+        
         if device_fp:
             user_devices = db.get_user_devices(user['id'])
-            if device_fp not in user_devices:
+            is_new_device = device_fp not in user_devices
+            
+            if is_new_device:
+                device_boost = 1  # Boost risk by 1 level
+                risk_boost_reasons.append('New device detected')
+                print(f"⚠️ New device detected: {device_fp[:20]}...")
+                
+                # 🔔 Send new device alert
                 send_security_alert_email(
                     recipient=user['email'],
                     username=username,
@@ -470,6 +487,42 @@ def api_login():
                     }
                 )
         
+        # === ADJUST RISK LEVEL BASED ON NEW DEVICE/LOCATION ===
+        total_new_factor_boost = device_boost + location_boost
+        
+        if total_new_factor_boost > 0:
+            # Map risk levels to numeric values
+            risk_levels = {
+                'Low Risk': 0,
+                'Medium Risk': 1,
+                'High Risk': 2,
+                'Critical Risk': 3
+            }
+            
+            risk_names = ['Low Risk', 'Medium Risk', 'High Risk', 'Critical Risk']
+            
+            # Get current risk level as number
+            current_risk_num = risk_levels.get(ml_risk_level, 0)
+            
+            # Boost by new device/location factors
+            boosted_risk_num = min(current_risk_num + total_new_factor_boost, 3)
+            
+            # Convert back to risk level name
+            final_risk_level = risk_names[boosted_risk_num]
+            
+            print(f"📈 Risk boosted: {ml_risk_level} → {final_risk_level} (new device: {device_boost}, new location: {location_boost})")
+            
+            # Update auth_result
+            auth_result['final_risk_level'] = final_risk_level
+            auth_result['risk_boost_reasons'] = risk_boost_reasons
+            auth_result['original_ml_risk'] = ml_risk_level
+        else:
+            final_risk_level = ml_risk_level
+        
+        # Update risk_level variable
+        risk_level = final_risk_level
+        print(f"🎯 Final Risk Level: {risk_level}")
+        
         # === ALERT: Check for high-risk/suspicious login ===
         if risk_level in ['High Risk', 'Critical Risk']:
             send_security_alert_email(
@@ -478,13 +531,18 @@ def api_login():
                 alert_type='suspicious_login',
                 details={
                     'risk_level': risk_level,
-                    'reason': auth_result.get('ml_prediction', 'Behavioral anomaly detected'),
+                    'reason': ', '.join(risk_boost_reasons) if risk_boost_reasons else auth_result.get('ml_prediction', 'Behavioral anomaly detected'),
                     'location': network_info['country'],
                     'ip_address': client_ip,
                     'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
                 }
             )
         
+        # Log auth attempt with final risk level
+        status = 'success' if auth_result['success'] else 'blocked'
+        db.log_auth_attempt(user['id'], status, auth_result)
+        
+        # ADAPTIVE MFA BASED ON FINAL RISK LEVEL
         if risk_level == 'Low Risk':
             # ============================================
             # LOW RISK: No MFA needed - proceed with login
@@ -602,6 +660,7 @@ def api_login():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
+
 
 
 
