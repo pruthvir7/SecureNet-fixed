@@ -240,6 +240,7 @@
                     <i class="fas fa-shield-alt"></i> Security Settings
                 </h2>
                 
+                <!-- MFA Setting -->
                 <div class="security-settings-row">
                     <div>
                         <strong>Two-Factor Authentication</strong>
@@ -251,6 +252,21 @@
                         <span class="mfa-status disabled" id="mfaStatusBadge">Disabled</span>
                         <button class="btn btn-primary" id="mfaActionBtn" onclick="toggleMFA()">
                             <i class="fas fa-key"></i> Enable MFA
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Password Change Setting (NEW) -->
+                <div class="security-settings-row">
+                    <div>
+                        <strong>Password</strong>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem; margin-top: 0.25rem;">
+                            Change your account password
+                        </p>
+                    </div>
+                    <div>
+                        <button class="btn btn-outline" onclick="window.location.href='/change-password'">
+                            <i class="fas fa-key"></i> Change Password
                         </button>
                     </div>
                 </div>
