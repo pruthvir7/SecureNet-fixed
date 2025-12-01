@@ -46,7 +46,6 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error creating database: {e}")
             raise
-
     
     @contextmanager
     def get_connection(self):
@@ -79,6 +78,9 @@ class DatabaseManager:
                     failed_attempts INT DEFAULT 0,
                     is_locked BOOLEAN DEFAULT FALSE,
                     is_admin BOOLEAN DEFAULT FALSE,
+                    mfa_enabled BOOLEAN DEFAULT FALSE,
+                    mfa_secret VARCHAR(255) NULL,
+                    backup_codes TEXT NULL,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     last_login TIMESTAMP NULL,
                     INDEX idx_username (username),
@@ -105,6 +107,17 @@ class DatabaseManager:
                     INDEX idx_user_id (user_id),
                     INDEX idx_status (status),
                     INDEX idx_timestamp (timestamp)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+            ''')
+            
+            cursor.execute('''
+                CREATE TABLE IF NOT EXISTS user_profiles (
+                    id INT AUTO_INCREMENT PRIMARY KEY,
+                    user_id VARCHAR(255) UNIQUE NOT NULL,
+                    profile_data JSON NOT NULL,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_user_id (user_id)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             ''')
             
@@ -139,7 +152,7 @@ class DatabaseManager:
     
     def get_user(self, username):
         with self.get_connection() as conn:
-            cursor = conn.cursor()
+            cursor = cursor.cursor()
             cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
             return cursor.fetchone()
     
@@ -171,54 +184,82 @@ class DatabaseManager:
             ''', (user_id,))
     
     def log_auth_attempt(self, user_id, status, result):
-        with self.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            flags_json = json.dumps(result.get('flags', []))
-            edns_threats = json.dumps(result.get('edns_security', {}).get('threats_detected', []))
-            
-            behavioral_dev = result.get('keystroke_deviation', '0%')
-            if isinstance(behavioral_dev, str):
-                behavioral_dev = behavioral_dev.replace('N/A (First Login)', '0')
-                behavioral_dev = float(behavioral_dev.rstrip('%'))
-            else:
-                behavioral_dev = 0
-            
-            # Store full result in details JSON field
-            network_info = result.get('network_info', {})
-            details_json = json.dumps({
-                'country': network_info.get('country'),
-                'device_fingerprint': network_info.get('device_fingerprint'),
-                'network_info': network_info
-            })
-            
-            cursor.execute('''
-                INSERT INTO auth_logs (
-                    user_id, status, risk_level, ml_prediction,
-                    behavioral_deviation, flags, edns_threats,
-                    ip_address, country, user_agent, details
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                user_id, status,
-                result.get('final_risk_level'),
-                result.get('ml_prediction'),
-                behavioral_dev,
-                flags_json, edns_threats,
-                network_info.get('ip_address'),
-                network_info.get('country'),
-                network_info.get('user_agent', '')[:500],
-                details_json
-            ))
-            
-            today = datetime.now().date()
-            cursor.execute('''
-                INSERT INTO system_stats (date, total_logins, blocked_attempts, mfa_required)
-                VALUES (%s, 1, %s, %s)
-                ON DUPLICATE KEY UPDATE
-                    total_logins = total_logins + 1,
-                    blocked_attempts = blocked_attempts + VALUES(blocked_attempts),
-                    mfa_required = mfa_required + VALUES(mfa_required)
-            ''', (today, 1 if status == 'blocked' else 0, 1 if status == 'mfa_required' else 0))
+        """Log authentication attempt with safe parsing."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                
+                flags_json = json.dumps(result.get('flags', []))
+                edns_threats = json.dumps(result.get('edns_security', {}).get('threats_detected', []))
+                
+                # Safe parsing of behavioral deviation
+                behavioral_dev = result.get('keystroke_deviation', '0%')
+                
+                if isinstance(behavioral_dev, str):
+                    # Handle special cases
+                    if ('N/A' in behavioral_dev or 
+                        'Registration' in behavioral_dev or 
+                        'First Login' in behavioral_dev):
+                        behavioral_dev = 0.0
+                    else:
+                        # Remove % and convert
+                        try:
+                            behavioral_dev = float(behavioral_dev.rstrip('%'))
+                        except ValueError:
+                            behavioral_dev = 0.0
+                else:
+                    behavioral_dev = float(behavioral_dev)
+                
+                # Store full result in details JSON field
+                network_info = result.get('network_info', {})
+                details_json = json.dumps({
+                    'country': network_info.get('country'),
+                    'device_fingerprint': network_info.get('device_fingerprint'),
+                    'ip_address': network_info.get('ip_address'),
+                    'user_agent': network_info.get('user_agent'),
+                    'asn': network_info.get('asn'),
+                    'risk_level': result.get('final_risk_level'),
+                    'ml_prediction': result.get('ml_prediction'),
+                    'edns_boost': result.get('edns_boost', 0),
+                    'network_boost': result.get('network_boost', 0),
+                    'behavioral_boost': result.get('behavioral_boost', 0),
+                    'total_boost': result.get('total_boost', 0)
+                })
+                
+                cursor.execute('''
+                    INSERT INTO auth_logs (
+                        user_id, status, risk_level, ml_prediction,
+                        behavioral_deviation, flags, edns_threats,
+                        ip_address, country, user_agent, details
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (
+                    user_id, status,
+                    result.get('final_risk_level'),
+                    result.get('ml_prediction'),
+                    behavioral_dev,
+                    flags_json, edns_threats,
+                    network_info.get('ip_address'),
+                    network_info.get('country'),
+                    network_info.get('user_agent', '')[:500],
+                    details_json
+                ))
+                
+                today = datetime.now().date()
+                cursor.execute('''
+                    INSERT INTO system_stats (date, total_logins, blocked_attempts, mfa_required)
+                    VALUES (%s, 1, %s, %s)
+                    ON DUPLICATE KEY UPDATE
+                        total_logins = total_logins + 1,
+                        blocked_attempts = blocked_attempts + VALUES(blocked_attempts),
+                        mfa_required = mfa_required + VALUES(mfa_required)
+                ''', (today, 1 if status == 'blocked' else 0, 1 if status == 'mfa_required' else 0))
+                
+                print(f"✓ Auth attempt logged for user {user_id}: {status}")
+                
+        except Exception as e:
+            print(f"❌ Error logging auth attempt: {e}")
+            import traceback
+            traceback.print_exc()
     
     def get_auth_history(self, user_id, limit=20):
         with self.get_connection() as conn:
@@ -295,7 +336,7 @@ class DatabaseManager:
                 WHERE username = %s
             ''', (username,))
             return cursor.rowcount > 0
-        
+    
     def get_user_auth_history(self, user_id, limit=10):
         """Get user authentication history."""
         try:
@@ -332,8 +373,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Get auth history error: {e}")
             return []
-
-        
+    
     def update_user_mfa(self, user_id, secret, backup_codes, enabled=False):
         try:
             with self.get_connection() as conn:
@@ -347,8 +387,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Update MFA error: {e}")
             return False
-
-
+    
     def enable_user_mfa(self, user_id):
         """Enable MFA for user."""
         try:
@@ -359,8 +398,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Enable MFA error: {e}")
             return False
-
-
+    
     def disable_user_mfa(self, user_id):
         """Disable MFA for user."""
         try:
@@ -375,8 +413,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Disable MFA error: {e}")
             return False
-
-
+    
     def update_backup_codes(self, user_id, backup_codes):
         """Update backup codes."""
         try:
@@ -389,7 +426,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Update backup codes error: {e}")
             return False
-
+    
     def save_user_profile(self, user_id, profile_dict):
         """Save user behavioral profile to database."""
         try:
@@ -411,7 +448,7 @@ class DatabaseManager:
             import traceback
             traceback.print_exc()
             return False
-
+    
     def load_user_profile(self, user_id):
         """Load user behavioral profile from database."""
         try:
@@ -436,11 +473,11 @@ class DatabaseManager:
             import traceback
             traceback.print_exc()
             return None
-
+    
     # =====================================================================
-    # NEW METHODS FOR ALERT SYSTEM
+    # ALERT SYSTEM METHODS
     # =====================================================================
-
+    
     def get_user_login_countries(self, user_id):
         """Get list of countries user has logged in from."""
         try:
@@ -457,7 +494,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error getting user countries: {e}")
             return []
-
+    
     def get_user_devices(self, user_id):
         """Get list of device fingerprints for user."""
         try:
@@ -480,7 +517,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error getting user devices: {e}")
             return []
-
+    
     def lock_user_account(self, user_id):
         """Lock user account after too many failed attempts."""
         try:
@@ -495,7 +532,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"Error locking account: {e}")
             return False
-
+    
     def update_user_password(self, user_id, new_password_hash):
         """Update user's password."""
         try:
