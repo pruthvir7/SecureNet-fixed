@@ -48,19 +48,6 @@
             letter-spacing: 0.5px;
         }
 
-        .stat-card .stat-change {
-            font-size: 12px;
-            margin-top: 8px;
-        }
-
-        .stat-change.positive {
-            color: #10b981;
-        }
-
-        .stat-change.negative {
-            color: #ef4444;
-        }
-
         .tabs {
             display: flex;
             border-bottom: 2px solid #e5e7eb;
@@ -128,25 +115,10 @@
             font-weight: 600;
         }
 
-        .badge.success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .badge.warning {
-            background: #fef3c7;
-            color: #92400e;
-        }
-
-        .badge.danger {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-
-        .badge.info {
-            background: #dbeafe;
-            color: #1e40af;
-        }
+        .badge.success { background: #d1fae5; color: #065f46; }
+        .badge.warning { background: #fef3c7; color: #92400e; }
+        .badge.danger  { background: #fee2e2; color: #991b1b; }
+        .badge.info    { background: #dbeafe; color: #1e40af; }
 
         .action-btn {
             padding: 6px 12px;
@@ -159,15 +131,8 @@
             transition: all 0.2s;
         }
 
-        .action-btn.primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .action-btn.danger {
-            background: #ef4444;
-            color: white;
-        }
+        .action-btn.primary { background: #667eea; color: white; }
+        .action-btn.danger  { background: #ef4444; color: white; }
 
         .action-btn:hover {
             transform: translateY(-2px);
@@ -188,15 +153,36 @@
             color: #6b7280;
         }
 
-        .search-box {
-            margin-bottom: 20px;
-        }
-
         .search-box input {
             width: 100%;
             padding: 12px 20px;
             border: 1px solid #e5e7eb;
             border-radius: 8px;
+            font-size: 14px;
+        }
+
+        /* Simple modal */
+        #userModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.4);
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+        #userModal .modal-inner {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+        }
+        #userModal input {
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            border: 1px solid #e5e7eb;
             font-size: 14px;
         }
     </style>
@@ -220,7 +206,6 @@
             </div>
         </div>
     </nav>
-
 
     <div class="admin-container">
         <!-- Header -->
@@ -264,27 +249,32 @@
 
         <!-- Tabs -->
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('users')">
+            <div class="tab active" onclick="switchTab('users', event)">
                 <i class="fas fa-users"></i> Users
             </div>
-            <div class="tab" onclick="switchTab('logs')">
+            <div class="tab" onclick="switchTab('logs', event)">
                 <i class="fas fa-list"></i> Auth Logs
             </div>
-            <div class="tab" onclick="switchTab('threats')">
+            <div class="tab" onclick="switchTab('threats', event)">
                 <i class="fas fa-shield-alt"></i> Threats
             </div>
-            <div class="tab" onclick="switchTab('config')">
+            <div class="tab" onclick="switchTab('config', event)">
                 <i class="fas fa-cog"></i> Configuration
             </div>
         </div>
 
-        <!-- Tab Content -->
-        
         <!-- Users Tab -->
         <div id="users-tab" class="tab-content active">
-            <div class="search-box">
-                <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
+
+            <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                <div class="search-box" style="flex:1; margin-right:10px;">
+                    <input type="text" id="userSearch" placeholder="Search users..." onkeyup="searchUsers()">
+                </div>
+                <button class="action-btn primary" onclick="openAddUserModal()">
+                    <i class="fas fa-user-plus"></i> Add User
+                </button>
             </div>
+
             <div class="data-table">
                 <table>
                     <thead>
@@ -383,13 +373,35 @@
         </div>
     </div>
 
-    <script>
+    <!-- User modal -->
+    <div id="userModal">
+        <div class="modal-inner">
+            <h3 id="userModalTitle">Add User</h3>
+            <div style="margin-top:10px;">
+                <label>Username</label>
+                <input id="modalUsername">
+                <label>Email</label>
+                <input id="modalEmail">
+                <label>Password (for add / reset)</label>
+                <input id="modalPassword" type="password">
+                <label style="font-size:14px; display:block; margin-top:5px;">
+                    <input type="checkbox" id="modalIsAdmin"> Admin
+                </label>
+            </div>
+            <div style="margin-top:15px; text-align:right;">
+                <button class="action-btn" onclick="closeUserModal()">Cancel</button>
+                <button class="action-btn primary" id="userModalSaveBtn">Save</button>
+            </div>
+        </div>
+    </div>
 
+    <script>
         if (!localStorage.getItem('admin_token')) {
             alert('⚠️ Admin authentication required');
             window.location.href = 'admin-login.html';
         }
-        const ADMIN_TOKEN = 'admin_secret_token_2024'; // Match backend
+
+        const ADMIN_TOKEN = 'admin_secret_token_2024'; // must match backend
         const API_BASE = '';
 
         function adminLogout() {
@@ -400,9 +412,7 @@
             }
         }
 
-        // Load data on page load
         document.addEventListener('DOMContentLoaded', function() {
-            // Display admin username
             const adminUser = JSON.parse(localStorage.getItem('admin_user') || '{}');
             if (adminUser.username) {
                 document.getElementById('adminUsername').textContent = adminUser.username;
@@ -413,13 +423,10 @@
             loadThreats();
         });
 
-        function switchTab(tabName) {
-            // Update tab buttons
+        function switchTab(tabName, event) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
             event.target.closest('.tab').classList.add('active');
-            
-            // Update tab content
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
 
@@ -429,13 +436,12 @@
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 const stats = await response.json();
-                
-                document.getElementById('totalUsers').textContent = stats.total_users;
-                document.getElementById('activeUsers').textContent = stats.active_users;
+                document.getElementById('totalUsers').textContent   = stats.total_users;
+                document.getElementById('activeUsers').textContent  = stats.active_users;
                 document.getElementById('recentLogins').textContent = stats.recent_logins;
                 document.getElementById('failedLogins').textContent = stats.failed_logins;
-                document.getElementById('mfaAdoption').textContent = stats.mfa_adoption_rate + '%';
-                document.getElementById('successRate').textContent = stats.success_rate + '%';
+                document.getElementById('mfaAdoption').textContent  = stats.mfa_adoption_rate + '%';
+                document.getElementById('successRate').textContent  = stats.success_rate + '%';
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
@@ -447,10 +453,8 @@
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 const data = await response.json();
-                
                 const tbody = document.getElementById('usersTableBody');
                 tbody.innerHTML = '';
-                
                 data.users.forEach(user => {
                     const row = document.createElement('tr');
                     row.innerHTML = `
@@ -464,11 +468,22 @@
                         </span></td>
                         <td>${user.failed_attempts}</td>
                         <td>
+                            <button class="action-btn primary"
+                                onclick="openEditUser(${user.id}, '${user.username}', '${user.email}')">
+                                <i class="fas fa-edit"></i> Edit
+                            </button>
+                            <button class="action-btn danger" onclick="deleteUser(${user.id})">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                             ${user.is_locked ? `
                                 <button class="action-btn primary" onclick="unlockUser(${user.id})">
                                     <i class="fas fa-unlock"></i> Unlock
                                 </button>
-                            ` : ''}
+                            ` : `
+                                <button class="action-btn danger" onclick="blockUser(${user.id})">
+                                    <i class="fas fa-ban"></i> Block
+                                </button>
+                            `}
                             <button class="action-btn danger" onclick="resetMFA(${user.id})">
                                 <i class="fas fa-redo"></i> Reset MFA
                             </button>
@@ -487,18 +502,15 @@
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 const data = await response.json();
-                
                 const tbody = document.getElementById('logsTableBody');
                 tbody.innerHTML = '';
-                
                 data.logs.forEach(log => {
                     const row = document.createElement('tr');
-                    const timestamp = new Date(log.timestamp).toLocaleString();
+                    const ts = new Date(log.timestamp).toLocaleString();
                     const riskLevel = log.analysis?.final_risk_level || 'N/A';
-                    const country = log.analysis?.network_info?.country || 'Unknown';
-                    
+                    const country   = log.analysis?.network_info?.country || 'Unknown';
                     row.innerHTML = `
-                        <td>${timestamp}</td>
+                        <td>${ts}</td>
                         <td>${log.username || 'Unknown'}</td>
                         <td><span class="badge ${
                             log.status === 'success' ? 'success' :
@@ -524,14 +536,11 @@
                     headers: { 'X-Admin-Token': ADMIN_TOKEN }
                 });
                 const ips = await response.json();
-                
                 const tbody = document.getElementById('threatsTableBody');
                 tbody.innerHTML = '';
-                
                 ips.forEach(ip => {
                     const row = document.createElement('tr');
                     const lastAttempt = new Date(ip.last_attempt).toLocaleString();
-                    
                     row.innerHTML = `
                         <td>${ip.ip_address}</td>
                         <td>${ip.attempts}</td>
@@ -551,40 +560,96 @@
         }
 
         async function unlockUser(userId) {
-            if (confirm('Unlock this user account?')) {
-                try {
-                    const response = await fetch(`${API_BASE}/api/admin/users/${userId}/unlock`, {
-                        method: 'POST',
-                        headers: { 'X-Admin-Token': ADMIN_TOKEN }
-                    });
-                    
-                    if (response.ok) {
-                        alert('User unlocked successfully');
-                        loadUsers();
-                    }
-                } catch (error) {
-                    console.error('Error unlocking user:', error);
+            if (!confirm('Unlock this user account?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${userId}/unlock`, {
+                    method: 'POST',
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                if (res.ok) {
+                    alert('User unlocked successfully');
+                    loadUsers();
+                } else {
                     alert('Failed to unlock user');
                 }
+            } catch (error) {
+                console.error('Error unlocking user:', error);
+            }
+        }
+
+        async function blockUser(userId) {
+            if (!confirm('Block this user account?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${userId}/block`, {
+                    method: 'POST',
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                if (res.ok) {
+                    alert('User blocked');
+                    loadUsers();
+                } else {
+                    alert('Failed to block user');
+                }
+            } catch (error) {
+                console.error('Error blocking user:', error);
             }
         }
 
         async function resetMFA(userId) {
-            if (confirm('Reset MFA for this user?')) {
-                try {
-                    const response = await fetch(`${API_BASE}/api/admin/users/${userId}/reset-mfa`, {
-                        method: 'POST',
-                        headers: { 'X-Admin-Token': ADMIN_TOKEN }
-                    });
-                    
-                    if (response.ok) {
-                        alert('MFA reset successfully');
-                        loadUsers();
-                    }
-                } catch (error) {
-                    console.error('Error resetting MFA:', error);
+            if (!confirm('Reset MFA for this user?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${userId}/reset-mfa`, {
+                    method: 'POST',
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                if (res.ok) {
+                    alert('MFA reset successfully');
+                    loadUsers();
+                } else {
                     alert('Failed to reset MFA');
                 }
+            } catch (error) {
+                console.error('Error resetting MFA:', error);
+            }
+        }
+
+        async function deleteUser(userId) {
+            if (!confirm('Delete this user?')) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${userId}`, {
+                    method: 'DELETE',
+                    headers: { 'X-Admin-Token': ADMIN_TOKEN }
+                });
+                if (res.ok) {
+                    alert('User deleted');
+                    loadUsers();
+                } else {
+                    alert('Failed to delete user');
+                }
+            } catch (error) {
+                console.error('Error deleting user:', error);
+            }
+        }
+
+        async function blockIP(ipAddress) {
+            if (!confirm(`Blacklist IP ${ipAddress}?`)) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/block-ip`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Token': ADMIN_TOKEN
+                    },
+                    body: JSON.stringify({ ip: ipAddress })
+                });
+                if (res.ok) {
+                    alert('IP blacklisted');
+                    loadThreats();
+                } else {
+                    alert('Failed to blacklist IP');
+                }
+            } catch (error) {
+                console.error('Error blacklisting IP:', error);
             }
         }
 
@@ -596,9 +661,100 @@
         }
 
         function searchUsers() {
-            // Implement search functionality
-            const search = document.getElementById('userSearch').value;
-            // Add debouncing and call loadUsers with search param
+            // Optionally implement server-side filtering using query param
+            const search = document.getElementById('userSearch').value.toLowerCase();
+            const rows = document.querySelectorAll('#usersTableBody tr');
+            rows.forEach(r => {
+                const text = r.textContent.toLowerCase();
+                r.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+
+        // Modal logic
+        let editingUserId = null;
+
+        function openAddUserModal() {
+            editingUserId = null;
+            document.getElementById('userModalTitle').textContent = 'Add User';
+            document.getElementById('modalUsername').value = '';
+            document.getElementById('modalEmail').value = '';
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalIsAdmin').checked = false;
+            document.getElementById('userModal').style.display = 'flex';
+            document.getElementById('userModalSaveBtn').onclick = saveNewUser;
+        }
+
+        function openEditUser(id, username, email) {
+            editingUserId = id;
+            document.getElementById('userModalTitle').textContent = 'Edit User';
+            document.getElementById('modalUsername').value = username;
+            document.getElementById('modalEmail').value = email;
+            document.getElementById('modalPassword').value = '';
+            document.getElementById('modalIsAdmin').checked = false; // set from API if you return is_admin
+            document.getElementById('userModal').style.display = 'flex';
+            document.getElementById('userModalSaveBtn').onclick = saveEditedUser;
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+        }
+
+        async function saveNewUser() {
+            const body = {
+                username: document.getElementById('modalUsername').value,
+                email: document.getElementById('modalEmail').value,
+                password: document.getElementById('modalPassword').value,
+                is_admin: document.getElementById('modalIsAdmin').checked
+            };
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Token': ADMIN_TOKEN
+                    },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    alert('User created');
+                    closeUserModal();
+                    loadUsers();
+                } else {
+                    alert('Failed to create user');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error creating user');
+            }
+        }
+
+        async function saveEditedUser() {
+            const body = {
+                username: document.getElementById('modalUsername').value,
+                email: document.getElementById('modalEmail').value,
+                password: document.getElementById('modalPassword').value || null,
+                is_admin: document.getElementById('modalIsAdmin').checked
+            };
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/users/${editingUserId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Admin-Token': ADMIN_TOKEN
+                    },
+                    body: JSON.stringify(body)
+                });
+                if (res.ok) {
+                    alert('User updated');
+                    closeUserModal();
+                    loadUsers();
+                } else {
+                    alert('Failed to update user');
+                }
+            } catch (e) {
+                console.error(e);
+                alert('Error updating user');
+            }
         }
     </script>
 </body>
