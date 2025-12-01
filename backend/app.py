@@ -89,6 +89,36 @@ db = DatabaseManager(
     port=10675
 )
 
+def migrate_database():
+    """Run database migrations."""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            # Check if 'details' column exists
+            cursor.execute("""
+                SELECT COUNT(*) as count
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = %s
+                AND TABLE_NAME = 'auth_logs' 
+                AND COLUMN_NAME = 'details'
+            """, (db.config['database'],))
+            
+            result = cursor.fetchone()
+            
+            if result['count'] == 0:
+                print("🔧 Running migration: Adding 'details' column...")
+                cursor.execute("""
+                    ALTER TABLE auth_logs 
+                    ADD COLUMN details JSON NULL
+                """)
+                print("✅ Migration complete!")
+                
+    except Exception as e:
+        print(f"⚠️ Migration warning: {e}")
+
+migrate_database()
+
 # Initialize auth engine with database
 auth_engine = AuthenticationEngine(model_dir='models/securenet_model_all5_20251118_190557', db_manager=db)
 edns_layer = EDNSSecurityLayer()
