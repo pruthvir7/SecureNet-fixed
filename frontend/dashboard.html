@@ -273,22 +273,25 @@
             </div>
         </div>
         <!-- MFA Setup Reminder Modal -->
-        <div id="mfaReminderModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); 
+        <div id="mfaReminderModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
             z-index:9999; align-items:center; justify-content:center;">
-          <div style="background:white; padding:30px; border-radius:12px; max-width:400px; text-align:center;">
-            <i class="fas fa-shield-alt" style="font-size:48px; color:#667eea; margin-bottom:15px;"></i>
-            <h3 style="margin-bottom:10px;">Secure Your Account</h3>
-            <p style="color:#6b7280; margin-bottom:20px;">
+          <div style="background:white; padding:32px 32px 28px; border-radius:16px; max-width:420px; text-align:center;">
+            <i class="fas fa-shield-alt" style="font-size:48px; color:#667eea; margin-bottom:18px;"></i>
+            <h3 style="margin-bottom:12px; font-size:22px;">Secure Your Account</h3>
+            <p style="color:#6b7280; margin:0 0 24px; line-height:1.5;">
               Set up Multi-Factor Authentication (MFA) to add an extra layer of security to your account.
             </p>
-            <button onclick="goToMFASetup()" class="btn btn-primary" style="margin-right:10px;">
-              <i class="fas fa-mobile-alt"></i> Set Up Now
-            </button>
-            <button onclick="closeMFAReminder()" class="btn" style="background:#e5e7eb; color:#374151;">
-              Remind Me Later
-            </button>
+            <div style="display:flex; flex-direction:column; gap:10px;">
+              <button onclick="goToMFASetup()" class="btn btn-primary" style="padding:10px 18px;">
+                <i class="fas fa-mobile-alt"></i> Set Up Now
+              </button>
+              <button onclick="closeMFAReminder()" class="btn" style="background:#e5e7eb; color:#374151; padding:10px 18px;">
+                Remind Me Later
+              </button>
+            </div>
           </div>
         </div>
+
     </main>
 
     <script src="js/auth.js"></script>
