@@ -270,17 +270,19 @@
                         
                     } else if (result.mfa_type === 'totp') {
                         // High Risk: TOTP (Authenticator App)
-                        
+                    
                         if (result.mfa_setup_required) {
-                            // Force MFA setup for high-risk users
-                            if (confirm('⚠️ ' + result.error + '\n\nSet up authenticator app now?')) {
-                                localStorage.setItem('pending_user', JSON.stringify({ username: username }));
-                                window.location.href = 'mfa-setup.html';
-                            } else {
-                                showNotification('MFA setup required to proceed', 'error');
-                            }
+                            // Do NOT redirect to setup; treat as blocked until MFA is configured by support/admin
+                            const msg = result.error ||
+                                'Your account requires authenticator setup due to high risk. Please contact support to enable MFA.';
+                            showNotification('🚫 ' + msg, 'error');
+                            alert(msg);
+                            // Optionally clear password field
+                            resetKeystrokeCapture();
+                            document.getElementById('password').value = '';
+                            document.getElementById('password').focus();
                         } else {
-                            // User has TOTP - redirect to verification
+                            // User already has TOTP - redirect to verification
                             localStorage.setItem('mfa_pending', JSON.stringify({
                                 username: username,
                                 type: 'totp',
@@ -289,6 +291,7 @@
                             window.location.href = 'mfa-verify.html';
                         }
                     }
+
                     
                 } else {
                     // BLOCKED or WRONG PASSWORD or other error
