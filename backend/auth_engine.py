@@ -21,6 +21,7 @@ class UserBehavioralProfile:
         self.network_baseline = {
             'typical_countries': [],
             'typical_asns': [],
+            'typical_ips': [],      
             'typical_devices': [],
             'typical_login_hours': [],
             'country_login_counts': {}  # ← ADD THIS
@@ -30,29 +31,30 @@ class UserBehavioralProfile:
         self.failed_attempts = 0
         self.last_login = None
     
-    def capture_registration_baseline(self, registration_data):
+        def capture_registration_baseline(self, registration_data):
         """Capture initial baseline during registration."""
         keystroke_timings = registration_data.get('keystroke_timings', [])
         network_info = registration_data.get('network_info', {})
     
-        # Store device fingerprint
         device_fingerprint = network_info.get('device_fingerprint', 'unknown')
         current_country = network_info.get('country', 'US')
         current_asn = network_info.get('asn', '0')
-        
+        registration_ip = network_info.get('ip_address')
+    
         # Initialize network baseline with ALL needed lists
         self.network_baseline = {
-            'registration_ip': network_info.get('ip_address'),
+            'registration_ip': registration_ip,
             'registration_country': current_country,
             'typical_countries': [current_country],
             'typical_devices': [device_fingerprint],
             'typical_asns': [current_asn],
+            'typical_ips': [registration_ip] if registration_ip else [],  # ← add this
             'typical_login_hours': [datetime.now().hour],
             'registration_time': datetime.now().isoformat(),
             'blacklisted_ips': [],
-            'country_login_counts': {current_country: 1}  # ← ADD THIS LINE
+            'country_login_counts': {current_country: 1}
         }
-        
+            
         # Calculate keystroke baseline if data exists
         if keystroke_timings and len(keystroke_timings) > 0:
             self.keystroke_baseline = {
@@ -178,14 +180,18 @@ class UserBehavioralProfile:
                 anomaly_score += 1  # Normal new country
                 print(f"⚠️ New location: {current_country}")
         
-        # Check device fingerprint - THIS IS KEY!
-        if current_device not in self.network_baseline.get('typical_devices', []):
-            flags.append('new_device')
-            anomaly_score += 1.5  # New device is significant
-            print(f"⚠️ New device detected: {current_device[:16]}...")
-            
-            # Add device to baseline for future logins
-            self.network_baseline['typical_devices'].append(current_device)
+        # Check IP address instead of device fingerprint
+        current_ip = network_info.get('ip_address', 'Unknown')
+        if 'typical_ips' not in self.network_baseline:
+            self.network_baseline['typical_ips'] = []
+        if current_ip not in self.network_baseline['typical_ips']:
+            flags.append('new_ip')
+            anomaly_score += 1.5  # New IP is significant
+            print(f"⚠️ New IP detected: {current_ip}")
+            # Add IP to baseline for future logins (keep last 10)
+            self.network_baseline['typical_ips'].append(current_ip)
+            self.network_baseline['typical_ips'] = self.network_baseline['typical_ips'][-10:]
+
         
         # Check ASN (Internet Service Provider)
         if current_asn != '0' and current_asn not in self.network_baseline.get('typical_asns', []):
