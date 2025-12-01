@@ -58,6 +58,7 @@
                                 placeholder="Choose a unique username"
                                 minlength="3"
                             >
+                            <small id="usernameHintInline" class="form-hint"></small>
                         </div>
 
                         <div class="form-group">
@@ -71,6 +72,7 @@
                                 required 
                                 placeholder="your.email@example.com"
                             >
+                            <small id="emailHintInline" class="form-hint"></small>
                         </div>
 
                         <div class="form-group">
@@ -265,7 +267,7 @@
         </div>
     </section>
 
-    <!-- Generic Auth Modal (same style as login) -->
+    <!-- Generic Auth Modal -->
     <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
         z-index:9999; align-items:center; justify-content:center;">
       <div style="background:white; padding:32px 32px 28px; border-radius:16px; max-width:420px; text-align:center;">
@@ -299,11 +301,79 @@
             trial3: []
         };
         let originalPassword = '';
+        const API_BASE = ''; // adjust if needed
+
+        let availabilityAbortController = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('password').addEventListener('input', checkPasswordStrength);
+
+            // Inline availability checks on blur
+            document.getElementById('username').addEventListener('blur', () => {
+                const value = document.getElementById('username').value.trim();
+                if (value.length >= 3) {
+                    checkAvailability({ username: value });
+                }
+            });
+
+            document.getElementById('email').addEventListener('blur', () => {
+                const value = document.getElementById('email').value.trim();
+                if (value) {
+                    checkAvailability({ email: value });
+                }
+            });
         });
+
+        async function checkAvailability({ username, email }) {
+            if (availabilityAbortController) {
+                availabilityAbortController.abort();
+            }
+            availabilityAbortController = new AbortController();
+
+            const usernameField = document.getElementById('username');
+            const emailField = document.getElementById('email');
+            const usernameHint = document.getElementById('usernameHintInline');
+            const emailHint = document.getElementById('emailHintInline');
+
+            const params = new URLSearchParams();
+            if (username) params.append('username', username);
+            if (email) params.append('email', email);
+
+            try {
+                const res = await fetch(`${API_BASE}/api/check-availability?` + params.toString(), {
+                    signal: availabilityAbortController.signal
+                });
+                if (!res.ok) return;
+                const data = await res.json(); // { username_taken, email_taken }
+
+                if (typeof data.username_taken === 'boolean' && username) {
+                    if (data.username_taken) {
+                        usernameField.classList.add('input-error');
+                        usernameHint.style.color = '#ef4444';
+                        usernameHint.textContent = 'This username is already taken.';
+                    } else {
+                        usernameField.classList.remove('input-error');
+                        usernameHint.style.color = '#10b981';
+                        usernameHint.textContent = 'Username is available.';
+                    }
+                }
+
+                if (typeof data.email_taken === 'boolean' && email) {
+                    if (data.email_taken) {
+                        emailField.classList.add('input-error');
+                        emailHint.style.color = '#ef4444';
+                        emailHint.textContent = 'This email is already registered.';
+                    } else {
+                        emailField.classList.remove('input-error');
+                        emailHint.style.color = '#10b981';
+                        emailHint.textContent = 'Email is available.';
+                    }
+                }
+            } catch (err) {
+                console.warn('Availability check failed', err);
+            }
+        }
 
         // Navigate between steps
         function nextStep(step) {
@@ -404,7 +474,7 @@
             if (allTimings.length < 9) {
                 openAuthModal({
                     title: 'Biometric Setup Incomplete',
-                    message: 'Please complete all three typing trials before continuing.',
+                    message: 'Please complete all three typing trials first.',
                     primaryText: 'OK',
                     secondaryText: 'Close',
                     onPrimary: closeAuthModal
@@ -426,10 +496,12 @@
         }
 
         function validateStep1() {
-            const username = document.getElementById('username').value;
-            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
+            const usernameHint = document.getElementById('usernameHintInline').textContent || '';
+            const emailHint = document.getElementById('emailHintInline').textContent || '';
             
             if (username.length < 3) {
                 openAuthModal({
@@ -441,11 +513,33 @@
                 });
                 return false;
             }
+
+            if (usernameHint.includes('already taken')) {
+                openAuthModal({
+                    title: 'Username Unavailable',
+                    message: 'Please choose a different username.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
+                return false;
+            }
             
             if (!email.includes('@')) {
                 openAuthModal({
                     title: 'Invalid Email',
                     message: 'Please enter a valid email address.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
+                return false;
+            }
+
+            if (emailHint.includes('already registered')) {
+                openAuthModal({
+                    title: 'Email Already Registered',
+                    message: 'Try logging in or use a different email address.',
                     primaryText: 'OK',
                     secondaryText: 'Close',
                     onPrimary: closeAuthModal
@@ -603,7 +697,7 @@
             }
         }
 
-        // Modal helpers (same as login)
+        // Modal helpers
         function openAuthModal(options) {
             const {
                 title,
