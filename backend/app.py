@@ -1200,6 +1200,29 @@ def api_mfa_setup():
         return jsonify({'error': str(e)}), 500
 
 
+@app.route('/api/check-availability')
+def check_availability():
+    username = request.args.get('username', '').strip()
+    email = request.args.get('email', '').strip()
+
+    username_taken = False
+    email_taken = False
+
+    if username:
+        user = User.query.filter_by(username=username).first()
+        username_taken = user is not None
+
+    if email:
+        user = User.query.filter_by(email=email).first()
+        email_taken = user is not None
+
+    return jsonify({
+        "username_taken": username_taken,
+        "email_taken": email_taken
+    })
+
+
+
 @app.route('/api/mfa/verify-setup', methods=['POST'])
 def api_mfa_verify_setup():
     """Verify MFA code during setup to enable it."""
