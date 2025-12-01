@@ -166,6 +166,31 @@
         </div>
     </section>
 
+    <!-- Generic Auth Modal -->
+    <div id="authModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5);
+        z-index:9999; align-items:center; justify-content:center;">
+      <div style="background:white; padding:32px 32px 28px; border-radius:16px; max-width:420px; text-align:center;">
+        <i class="fas fa-shield-alt" style="font-size:40px; color:#667eea; margin-bottom:18px;"></i>
+        <h3 id="authModalTitle" style="margin-bottom:12px; font-size:22px;">Security Check</h3>
+        <p id="authModalMessage" style="color:#6b7280; margin:0 0 20px; line-height:1.5;">
+          Message goes here.
+        </p>
+        <div id="authModalInputRow" style="display:none; margin-bottom:16px;">
+          <input id="authModalInput" type="text"
+                 style="width:100%; padding:10px 12px; border-radius:10px; border:1px solid #e5e7eb; font-size:14px;"
+                 placeholder="">
+        </div>
+        <div style="display:flex; flex-direction:column; gap:10px;">
+          <button id="authModalPrimaryBtn" class="btn btn-primary" style="padding:10px 18px;">
+            OK
+          </button>
+          <button id="authModalSecondaryBtn" class="btn" style="background:#e5e7eb; color:#374151; padding:10px 18px;">
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/keystroke.js"></script>
     <script src="js/auth.js"></script>
@@ -211,7 +236,13 @@
             
             // Validate inputs
             if (!username || !password) {
-                alert('Please enter username and password');
+                openAuthModal({
+                    title: 'Missing Information',
+                    message: 'Please enter both username and password.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 return;
             }
             
@@ -246,23 +277,32 @@
                 
                 // Handle different response types
                 if (result.success) {
-                    // ========================================
                     // SUCCESS: Direct login (Low Risk)
-                    // ========================================
                     localStorage.setItem('auth_token', result.token);
                     localStorage.setItem('user', JSON.stringify(result.user));
-                    
                     showNotification('✅ Login successful!', 'success');
-                    
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 500);
-                    
+
+                } else if (result.action === 'BLOCK') {
+                    // Hard BLOCK from backend
+                    const msg = result.message || result.error ||
+                        'Your login was blocked due to high risk. Please contact support.';
+                    showNotification('🚫 ' + msg, 'error');
+                    openAuthModal({
+                        title: 'Login Blocked',
+                        message: msg,
+                        primaryText: 'OK',
+                        secondaryText: 'Close',
+                        onPrimary: closeAuthModal
+                    });
+                    resetKeystrokeCapture();
+                    document.getElementById('password').value = '';
+                    document.getElementById('password').focus();
+
                 } else if (result.mfa_required) {
-                    // ========================================
-                    // MFA REQUIRED: Handle different MFA types
-                    // ========================================
-                    
+                    // MFA REQUIRED
                     if (result.mfa_type === 'email') {
                         // Medium Risk: Email OTP
                         showNotification(result.message, 'info');
@@ -270,14 +310,18 @@
                         
                     } else if (result.mfa_type === 'totp') {
                         // High Risk: TOTP (Authenticator App)
-                    
                         if (result.mfa_setup_required) {
-                            // Do NOT redirect to setup; treat as blocked until MFA is configured by support/admin
+                            // Treat as blocked until admin/support configures MFA
                             const msg = result.error ||
                                 'Your account requires authenticator setup due to high risk. Please contact support to enable MFA.';
                             showNotification('🚫 ' + msg, 'error');
-                            alert(msg);
-                            // Optionally clear password field
+                            openAuthModal({
+                                title: 'Login Blocked',
+                                message: msg,
+                                primaryText: 'OK',
+                                secondaryText: 'Close',
+                                onPrimary: closeAuthModal
+                            });
                             resetKeystrokeCapture();
                             document.getElementById('password').value = '';
                             document.getElementById('password').focus();
@@ -291,43 +335,70 @@
                             window.location.href = 'mfa-verify.html';
                         }
                     }
-
                     
                 } else {
-                    // BLOCKED or WRONG PASSWORD or other error
+                    // WRONG PASSWORD or other non-block error
                     if (result.error) {
-                        if (result.error.toLowerCase().includes('locked')) {
-                            // Blocked due to multiple failed attempts
+                        const err = result.error.toLowerCase();
+                        if (err.includes('locked')) {
                             showNotification('🚫 Account blocked: ' + result.error, 'error');
-                            alert('Your account is locked due to multiple failed login attempts. Please contact support.');
-                        } else if (result.error.toLowerCase().includes('invalid credentials')) {
-                            // Wrong password
+                            openAuthModal({
+                                title: 'Account Locked',
+                                message: 'Your account is locked due to multiple failed login attempts. Please contact support.',
+                                primaryText: 'OK',
+                                secondaryText: 'Close',
+                                onPrimary: closeAuthModal
+                            });
+                        } else if (err.includes('invalid credentials')) {
                             showNotification('❌ Wrong password or username.', 'error');
-                            alert('Wrong username or password. Please try again.');
-                            
-                            // Optionally, you can add a shake effect to the password input
+                            openAuthModal({
+                                title: 'Login Failed',
+                                message: 'Wrong username or password. Please try again.',
+                                primaryText: 'OK',
+                                secondaryText: 'Close',
+                                onPrimary: () => {
+                                    closeAuthModal();
+                                    document.getElementById('password').focus();
+                                }
+                            });
                             const passInput = document.getElementById('password');
                             passInput.classList.add('input-error');
                             setTimeout(() => passInput.classList.remove('input-error'), 400);
                         } else {
-                            // Other errors
                             showNotification('❌ ' + result.error, 'error');
-                            alert(result.error);
+                            openAuthModal({
+                                title: 'Login Error',
+                                message: result.error,
+                                primaryText: 'OK',
+                                secondaryText: 'Close',
+                                onPrimary: closeAuthModal
+                            });
                         }
                     } else {
                         showNotification('❌ Login failed', 'error');
-                        alert('Login failed. Please try again.');
+                        openAuthModal({
+                            title: 'Login Failed',
+                            message: 'Login failed. Please try again.',
+                            primaryText: 'OK',
+                            secondaryText: 'Close',
+                            onPrimary: closeAuthModal
+                        });
                     }
-                    // Reset for retry
                     resetKeystrokeCapture();
                     document.getElementById('password').value = '';
                     document.getElementById('password').focus();
                 }
 
-                
             } catch (error) {
                 console.error('Login error:', error);
                 showNotification('Connection error. Please check if the server is running.', 'error');
+                openAuthModal({
+                    title: 'Connection Error',
+                    message: 'Unable to reach the server. Please check your connection and try again.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
                 resetKeystrokeCapture();
             } finally {
                 loginButton.disabled = false;
@@ -358,21 +429,29 @@
             }
         }
 
-        // Prompt for Email OTP (Medium Risk)
+        // Prompt for Email OTP (Medium Risk) using modal
         function promptEmailOTP(username, message) {
-            const code = prompt(message + '\n\nEnter the 6-digit code:');
-            
-            if (code) {
-                if (code.length !== 6 || !/^\d+$/.test(code)) {
-                    alert('Invalid code format. Please enter a 6-digit number.');
-                    promptEmailOTP(username, message); // Retry
-                    return;
+            openAuthModal({
+                title: 'Email Verification',
+                message: message,
+                primaryText: 'Verify',
+                secondaryText: 'Cancel',
+                showInput: true,
+                inputType: 'text',
+                inputPlaceholder: 'Enter 6-digit code',
+                onPrimary: (value) => {
+                    const code = (value || '').trim();
+                    if (code.length !== 6 || !/^\d+$/.test(code)) {
+                        showNotification('Invalid code format. Please enter a 6-digit number.', 'error');
+                        return;
+                    }
+                    closeAuthModal();
+                    verifyEmailOTP(username, code);
+                },
+                onSecondary: () => {
+                    showNotification('Verification cancelled', 'warning');
                 }
-                
-                verifyEmailOTP(username, code);
-            } else {
-                showNotification('Verification cancelled', 'warning');
-            }
+            });
         }
 
         // Verify Email OTP
@@ -391,26 +470,39 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    // Success - store token and redirect
                     localStorage.setItem('auth_token', result.token);
                     localStorage.setItem('user', JSON.stringify(result.user));
-                    
                     showNotification('✅ ' + result.message, 'success');
-                    
                     setTimeout(() => {
                         window.location.href = 'dashboard.html';
                     }, 1000);
                 } else {
-                    // Failed - retry
                     showNotification('❌ ' + result.error, 'error');
-                    
-                    if (confirm(result.error + '\n\nTry again?')) {
-                        promptEmailOTP(username, 'Enter the verification code from your email');
-                    }
+                    openAuthModal({
+                        title: 'Verification Failed',
+                        message: result.error + '\n\nTry again with the correct code.',
+                        primaryText: 'Try Again',
+                        secondaryText: 'Cancel',
+                        onPrimary: () => {
+                            closeAuthModal();
+                            promptEmailOTP(username, 'Enter the verification code from your email');
+                        },
+                        onSecondary: () => {
+                            closeAuthModal();
+                            showNotification('Verification cancelled', 'warning');
+                        }
+                    });
                 }
             } catch (error) {
                 console.error('Email OTP verify error:', error);
                 showNotification('Connection error. Please try again.', 'error');
+                openAuthModal({
+                    title: 'Connection Error',
+                    message: 'Unable to verify the code due to a connection issue. Please try again.',
+                    primaryText: 'OK',
+                    secondaryText: 'Close',
+                    onPrimary: closeAuthModal
+                });
             } finally {
                 loginButton.disabled = false;
                 loginButton.innerHTML = '<i class="fas fa-sign-in-alt"></i> Login Securely';
@@ -428,7 +520,6 @@
             document.getElementById('ednsResult').textContent = 
                 analysis.edns_security?.threat_detected ? '⚠️ Threat Detected' : '✓ Safe';
             
-            // Color coding for risk level
             const riskElem = document.getElementById('riskLevel');
             if (riskLevel.includes('High') || riskLevel.includes('Critical')) {
                 riskElem.style.color = '#ef4444';
@@ -443,7 +534,56 @@
         function showNotification(message, type) {
             console.log(`[${type.toUpperCase()}] ${message}`);
         }
+
+        // Modal helpers
+        function openAuthModal(options) {
+            const {
+                title,
+                message,
+                primaryText = 'OK',
+                secondaryText = 'Close',
+                showInput = false,
+                inputType = 'text',
+                inputPlaceholder = '',
+                onPrimary,
+                onSecondary
+            } = options;
+
+            const modal = document.getElementById('authModal');
+            document.getElementById('authModalTitle').textContent = title;
+            document.getElementById('authModalMessage').textContent = message;
+
+            const primaryBtn = document.getElementById('authModalPrimaryBtn');
+            const secondaryBtn = document.getElementById('authModalSecondaryBtn');
+            primaryBtn.textContent = primaryText;
+            secondaryBtn.textContent = secondaryText;
+
+            const inputRow = document.getElementById('authModalInputRow');
+            const inputEl = document.getElementById('authModalInput');
+            if (showInput) {
+                inputRow.style.display = 'block';
+                inputEl.type = inputType;
+                inputEl.value = '';
+                inputEl.placeholder = inputPlaceholder;
+            } else {
+                inputRow.style.display = 'none';
+                inputEl.value = '';
+            }
+
+            primaryBtn.onclick = () => {
+                if (onPrimary) onPrimary(inputEl.value);
+            };
+            secondaryBtn.onclick = () => {
+                if (onSecondary) onSecondary();
+                closeAuthModal();
+            };
+
+            modal.style.display = 'flex';
+        }
+
+        function closeAuthModal() {
+            document.getElementById('authModal').style.display = 'none';
+        }
     </script>
 </body>
 </html>
-
