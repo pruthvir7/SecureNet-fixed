@@ -822,6 +822,71 @@ def send_security_alert_email(recipient, username, alert_type, details):
         print(f"❌ Alert email error: {e}")
         return False
 
+@app.route('/api/user/change-password', methods=['POST'])
+def api_change_password():
+    """Change user password."""
+    try:
+        data = request.json
+        token = request.headers.get('Authorization', '').replace('Bearer ', '')
+        old_password = data.get('old_password')
+        new_password = data.get('new_password')
+        
+        # Verify token
+        user_id = verify_token(token)
+        if not user_id:
+            return jsonify({'error': 'Invalid or expired token'}), 401
+        
+        # Get user
+        user = db.get_user_by_id(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+        
+        # Verify old password
+        if not bcrypt.check_password_hash(user['password_hash'], old_password):
+            return jsonify({'error': 'Current password is incorrect'}), 401
+        
+        # Validate new password
+        if len(new_password) < 6:
+            return jsonify({'error': 'New password must be at least 6 characters'}), 400
+        
+        if old_password == new_password:
+            return jsonify({'error': 'New password must be different from current password'}), 400
+        
+        # Hash new password
+        new_password_hash = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        
+        # Update password in database
+        db.update_user_password(user_id, new_password_hash)
+        
+        # 🔔 Send password changed alert
+        send_security_alert_email(
+            recipient=user['email'],
+            username=user['username'],
+            alert_type='password_changed',
+            details={
+                'time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                'ip_address': get_client_ip(),
+                'device': request.headers.get('User-Agent', 'Unknown')[:80]
+            }
+        )
+        
+        print(f"✓ Password changed for user {user['username']}")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Password changed successfully!'
+        }), 200
+        
+    except Exception as e:
+        print(f"Password change error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/change-password')
+def change_password_page():
+    """Serve password change page."""
+    return send_from_directory('../frontend', 'change-password.html')
 
 
 @app.route('/api/verify-mfa', methods=['POST'])
