@@ -369,8 +369,9 @@ def api_login():
         
         # Get REAL client IP and location from backend
         client_ip = get_client_ip()
-        backend_network_info = get_ip_location(client_ip)  # Now includes 'is_vpn'
+        backend_network_info = get_ip_location(client_ip)
         
+        # Merge frontend and backend network info
         frontend_network_info = data.get('network_info', {})
         network_info = {
             'ip_address': backend_network_info['ip_address'],
@@ -395,9 +396,8 @@ def api_login():
         )
         
         if threats_detected:
-            # Use threat_level for boost (1-3)
             threat_level = edns_result.get('threat_level', 1)
-            edns_boost += threat_level  # 1 for minor, 2-3 for major
+            edns_boost += threat_level
             print(f"⚠️ EDNS threat detected (level {threat_level})")
         
         # VPN detection from IPHub
@@ -435,10 +435,12 @@ def api_login():
         
         # === CHECK IF THIS IS FIRST LOGIN ===
         profile = auth_engine.get_user_profile(user['profile_id'])
+        print(f"🔍 DEBUG: Profile successful_logins = {profile.successful_logins}")
         is_first_login = profile.successful_logins == 0
+        print(f"🔍 DEBUG: is_first_login = {is_first_login}")
         
         if is_first_login:
-            print("✓ FIRST LOGIN - Auto-approving to establish baseline (no alerts)")
+            print("✅ FIRST LOGIN - Auto-approving to establish baseline (no alerts)")
             
             # Auto-approve first login
             db.reset_failed_attempts(user['id'])
@@ -456,6 +458,8 @@ def api_login():
                 'risk_score': 1
             })
             
+            print("✅ FIRST LOGIN - Returning success response")
+            
             return jsonify({
                 'success': True,
                 'token': token,
@@ -467,7 +471,9 @@ def api_login():
                 'first_login': True
             }), 200
         
-        # === CHECK FOR NEW DEVICE/LOCATION AND ADJUST RISK (SKIP FOR FIRST LOGIN) ===
+        # === ONLY RUNS FOR NON-FIRST LOGINS ===
+        print("🔍 Not first login - checking device/location")
+        
         device_boost = 0
         location_boost = 0
         risk_boost_reasons = []
@@ -477,7 +483,7 @@ def api_login():
         is_new_location = network_info['country'] not in user_countries
         
         if is_new_location:
-            location_boost = 1  # Boost risk by 1 level
+            location_boost = 1
             risk_boost_reasons.append('New location detected')
             print(f"⚠️ New location detected: {network_info['country']}")
             
@@ -503,7 +509,7 @@ def api_login():
             is_new_device = device_fp not in user_devices
             
             if is_new_device:
-                device_boost = 1  # Boost risk by 1 level
+                device_boost = 1
                 risk_boost_reasons.append('New device detected')
                 print(f"⚠️ New device detected: {device_fp[:20]}...")
                 
@@ -525,7 +531,6 @@ def api_login():
         total_new_factor_boost = device_boost + location_boost
         
         if total_new_factor_boost > 0:
-            # Map risk levels to numeric values
             risk_levels = {
                 'Low Risk': 0,
                 'Medium Risk': 1,
@@ -535,25 +540,18 @@ def api_login():
             
             risk_names = ['Low Risk', 'Medium Risk', 'High Risk', 'Critical Risk']
             
-            # Get current risk level as number
             current_risk_num = risk_levels.get(ml_risk_level, 0)
-            
-            # Boost by new device/location factors
             boosted_risk_num = min(current_risk_num + total_new_factor_boost, 3)
-            
-            # Convert back to risk level name
             final_risk_level = risk_names[boosted_risk_num]
             
             print(f"📈 Risk boosted: {ml_risk_level} → {final_risk_level} (new device: {device_boost}, new location: {location_boost})")
             
-            # Update auth_result
             auth_result['final_risk_level'] = final_risk_level
             auth_result['risk_boost_reasons'] = risk_boost_reasons
             auth_result['original_ml_risk'] = ml_risk_level
         else:
             final_risk_level = ml_risk_level
         
-        # Update risk_level variable
         risk_level = final_risk_level
         print(f"🎯 Final Risk Level: {risk_level}")
         
@@ -640,7 +638,6 @@ def api_login():
             # HIGH RISK: Require TOTP (Authenticator App)
             # ============================================
             if not user.get('mfa_enabled'):
-                # Force MFA setup for high-risk users
                 return jsonify({
                     'success': False,
                     'mfa_required': True,
@@ -651,7 +648,6 @@ def api_login():
                     'security_analysis': auth_result
                 }), 403
             
-            # User has TOTP enabled - require verification
             update_dashboard_stats('high_risk', {
                 'username': username,
                 'country': network_info['country'],
@@ -694,9 +690,6 @@ def api_login():
         import traceback
         traceback.print_exc()
         return jsonify({'error': str(e)}), 500
-
-
-
 
 
 def generate_otp():
