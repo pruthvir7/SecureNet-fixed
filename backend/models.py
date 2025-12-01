@@ -496,17 +496,17 @@ class DatabaseManager:
             print(f"Error locking account: {e}")
             return False
 
-    # def update_user_password(self, user_id, new_password_hash):
-    #     """Update user's password."""
-    #     try:
-    #         with self.get_connection() as conn:
-    #             cursor = conn.cursor()
-    #             cursor.execute(
-    #                 "UPDATE users SET password_hash = %s WHERE id = %s",
-    #                 (new_password_hash, user_id)
-    #             )
-    #             print(f"✓ Password updated for user {user_id}")
-    #             return True
-    #     except Exception as e:
-    #         print(f"Error updating password: {e}")
-    #         return False
+    def update_user_password(self, user_id, new_password_hash):
+        """Update user's password."""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE users SET password_hash = %s WHERE id = %s",
+                    (new_password_hash, user_id)
+                )
+                print(f"✓ Password updated for user {user_id}")
+                return True
+        except Exception as e:
+            print(f"Error updating password: {e}")
+            return False
