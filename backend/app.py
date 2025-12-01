@@ -34,6 +34,7 @@ from sendgrid.helpers.mail import Mail
 import random
 from backend.admin_routes import admin_bp
 import resend
+from werkzeug.security import generate_password_hash 
 # Add parent directory to path
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
@@ -124,6 +125,8 @@ auth_engine = AuthenticationEngine(model_dir='models/securenet_model_all5_202511
 edns_layer = EDNSSecurityLayer()
 
 app.config['DB'] = db
+app.config['AUTH_ENGINE'] = auth_engine
+app.config['PASSWORD_HASHER'] = lambda pwd: generate_password_hash(pwd)
 app.register_blueprint(admin_bp)
 # =====================================================================
 # UTILITY FUNCTIONS
@@ -417,7 +420,18 @@ def api_login():
         }
         
         print(f"🌍 Login from: {network_info['country']} | IP: {network_info['ip_address']}")
-        
+
+
+        ip = network_info.get('ip_address')
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1 FROM blocked_ips WHERE ip_address = %s", (ip,))
+            if cursor.fetchone():
+                return jsonify({
+                    'success': False,
+                    'action': 'BLOCK',
+                    'reason': 'IP blacklisted'
+                }), 403
         # Initialize edns_boost
         edns_boost = 0
         
