@@ -495,28 +495,23 @@ class DatabaseManager:
             print(f"Error getting user countries: {e}")
             return []
     
-    def get_user_devices(self, user_id):
-        """Get list of device fingerprints for user."""
+    def get_user_ips(self, user_id):
+        """Get list of IP addresses user has logged in from."""
         try:
             with self.get_connection() as conn:
                 cursor = conn.cursor()
                 cursor.execute("""
-                    SELECT DISTINCT JSON_EXTRACT(details, '$.device_fingerprint') as device
+                    SELECT DISTINCT ip_address 
                     FROM auth_logs 
                     WHERE user_id = %s 
-                    AND details IS NOT NULL
+                    AND ip_address IS NOT NULL
                     AND status = 'success'
                 """, (user_id,))
-                devices = []
-                for row in cursor.fetchall():
-                    if row['device'] and row['device'] != 'null':
-                        # Remove JSON quotes
-                        device = str(row['device']).strip('"')
-                        devices.append(device)
-                return devices
+                return [row['ip_address'] for row in cursor.fetchall()]
         except Exception as e:
-            print(f"Error getting user devices: {e}")
+            print(f"Error getting user IPs: {e}")
             return []
+
     
     def lock_user_account(self, user_id):
         """Lock user account after too many failed attempts."""
