@@ -152,7 +152,7 @@ class DatabaseManager:
     
     def get_user(self, username):
         with self.get_connection() as conn:
-            cursor = cursor.cursor()
+            cursor = conn.cursor()
             cursor.execute('SELECT * FROM users WHERE username = %s', (username,))
             return cursor.fetchone()
     
