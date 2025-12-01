@@ -357,7 +357,7 @@ class DatabaseManager:
                 history = []
                 for log in logs:
                     history.append({
-                        'timestamp': str(log['timestamp']),
+                        'timestamp': log['timestamp'].isoformat() + 'Z',
                         'status': log['status'],
                         'risk_level': log.get('risk_level', 'Unknown'),
                         'country': log.get('country', 'Unknown'),
