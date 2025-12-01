@@ -543,7 +543,7 @@ def send_email_otp(recipient, otp, username):
                     <p>A login attempt from a new location or device requires verification.</p>
                     <div style="background: #f3f4f6; padding: 25px; border-radius: 10px; text-align: center; margin: 25px 0;">
                         <p style="color: #6b7280; font-size: 0.875rem; margin: 0 0 10px 0;">Your verification code:</p>
-                        <h1 style="color: #667eea; font-size: 42px; letter-spacing: 8px; margin: 0; font-weight: 700;">{otp}</h1>
+                        <h1 style="color: #667eea; font-size: 35px; letter-spacing: 8px; margin: 0; font-weight: 700;">{otp}</h1>
                     </div>
                     <p style="color: #ef4444; font-weight: 600;">⏱️ This code expires in 5 minutes.</p>
                     <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
