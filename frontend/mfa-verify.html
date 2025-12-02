@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MFA Verification - SecureNet</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="auth-page">
     <!-- Navbar -->
@@ -24,27 +25,27 @@
             <div class="auth-card">
                 <div class="auth-header">
                     <h1>Multi-Factor Authentication</h1>
-                    <p>Enter the 6-digit code from your authenticator app to complete login</p>
+                    <p>Enter the 6-digit code from your authenticator app or backup code to complete login</p>
                 </div>
 
                 <form id="totpForm" class="auth-form">
                     <div class="form-group">
                         <label for="totpCode">
-                            <i class="fas fa-mobile-alt"></i> Authenticator Code
+                            <i class="fas fa-mobile-alt"></i> Verification Code
                         </label>
-                        <input 
-                            type="text" 
-                            id="totpCode" 
-                            name="totpCode" 
-                            maxlength="6"
-                            pattern="[0-9]{6}"
-                            required 
+                        <input
+                            type="text"
+                            id="totpCode"
+                            name="totpCode"
+                            maxlength="10"
+                            required
                             autofocus
-                            placeholder="Enter 6-digit code"
+                            placeholder="Enter 6-digit TOTP or backup code"
                             autocomplete="one-time-code"
                         >
                         <small class="form-hint">
-                            Generated in your authenticator app like Google Authenticator or Authy.
+                            Enter the 6-digit code from your authenticator app (e.g., Google Authenticator, Authy)
+                            or one of your backup codes.
                         </small>
                     </div>
 
@@ -57,6 +58,11 @@
                     <i class="fas fa-exclamation-triangle"></i>
                     <span id="errorMessage">Invalid code. Please try again.</span>
                 </div>
+
+                <div id="infoAlert" class="alert alert-info" style="display:none;">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="infoMessage"></span>
+                </div>
             </div>
         </div>
     </section>
@@ -66,9 +72,20 @@
         const mfaPending = JSON.parse(localStorage.getItem('mfa_pending') || '{}');
         const username = mfaPending.username || '';
 
-        document.getElementById('totpForm').addEventListener('submit', async function(e) {
+        // If username is missing, optionally redirect back to login
+        if (!username) {
+            // Uncomment if you want hard redirect when state is missing
+            // window.location.href = 'login.html';
+        }
+
+        document.getElementById('totpForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const code = document.getElementById('totpCode').value.trim();
+
+            if (!code) {
+                showError('Please enter your verification code.');
+                return;
+            }
 
             const verifyBtn = document.getElementById('verifyBtn');
             verifyBtn.disabled = true;
@@ -89,13 +106,32 @@
                 const result = await response.json();
 
                 if (response.ok && result.success) {
-                    localStorage.setItem('auth_token', result.token);
-                    localStorage.setItem('user', JSON.stringify(result.user));
-                    window.location.href = 'dashboard.html';
+                    // Store token and user (if provided)
+                    if (result.token) {
+                        localStorage.setItem('auth_token', result.token);
+                    }
+                    if (result.user) {
+                        localStorage.setItem('user', JSON.stringify(result.user));
+                    }
+
+                    // Clear pending MFA state
+                    localStorage.removeItem('mfa_pending');
+
+                    // Optional: notify if backup code was used
+                    if (result.method === 'backup_code') {
+                        showInfo(
+                            `Logged in using a backup code. Remaining codes: ${result.remaining_codes ?? 0}`
+                        );
+                    }
+
+                    // Small delay so the user can see the info message if any
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 500);
                 } else {
                     showError(result.error || 'Invalid code. Please try again.');
                 }
-            } catch {
+            } catch (err) {
                 showError('Network error. Please try again.');
             } finally {
                 verifyBtn.disabled = false;
@@ -107,7 +143,15 @@
             const alertDiv = document.getElementById('errorAlert');
             document.getElementById('errorMessage').textContent = message;
             alertDiv.style.display = 'flex';
-            setTimeout(() => { alertDiv.style.display = 'none'; }, 3500);
+            // Hide after a few seconds
+            setTimeout(() => { alertDiv.style.display = 'none'; }, 4000);
+        }
+
+        function showInfo(message) {
+            const alertDiv = document.getElementById('infoAlert');
+            document.getElementById('infoMessage').textContent = message;
+            alertDiv.style.display = 'flex';
+            setTimeout(() => { alertDiv.style.display = 'none'; }, 4000);
         }
     </script>
 </body>
