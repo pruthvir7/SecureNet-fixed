@@ -718,10 +718,10 @@ a:hover {
     max-width: 1100px;
     margin: 0 auto;
     padding: 0 var(--spacing-lg);
-    display: grid;
-    grid-template-columns: 1.5fr 1fr;
+    display: flex;
     gap: var(--spacing-3xl);
-    align-items: start;
+    align-items: flex-start;
+    justify-content: space-between; /* Step 1 default: card + sidebar */
 }
 
 .auth-card {
