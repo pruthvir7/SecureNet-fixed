@@ -728,6 +728,7 @@ a:hover {
     background: white;
     border-radius: 1.5rem;
     padding: var(--spacing-3xl);
+    padding-bottom: calc(var(--spacing-3xl) + 1.5rem);
     box-shadow: var(--shadow-xl);
 }
 
