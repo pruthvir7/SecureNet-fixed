@@ -375,7 +375,6 @@
             }
         }
 
-        // Navigate between steps
         function nextStep(step) {
             if (step === 2 && !validateStep1()) {
                 return;
@@ -390,13 +389,16 @@
                     setupTrialListeners();
                 }, 100);
             }
-            
-            // Hide/show sidebar based on step
+        
+            // Sidebar + centering logic
             const sidebar = document.querySelector('.security-info');
+            const container = document.querySelector('.auth-container');
             if (step === 1) {
                 sidebar.style.display = 'block';
+                container.style.justifyContent = 'space-between';
             } else {
                 sidebar.style.display = 'none';
+                container.style.justifyContent = 'center';
             }
             
             document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
@@ -405,7 +407,7 @@
             document.getElementById('step' + step).classList.add('active');
             document.getElementById('step' + step + 'Indicator').classList.add('active');
         }
-
+        
 
         function setupTrialListeners() {
             setupTrial('bioPassword1', 'status1', 'trial1', 'bioPassword2');
