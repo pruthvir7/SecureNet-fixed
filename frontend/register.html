@@ -391,12 +391,21 @@
                 }, 100);
             }
             
+            // Hide/show sidebar based on step
+            const sidebar = document.querySelector('.security-info');
+            if (step === 1) {
+                sidebar.style.display = 'block';
+            } else {
+                sidebar.style.display = 'none';
+            }
+            
             document.querySelectorAll('.form-step').forEach(s => s.classList.remove('active'));
             document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
             
             document.getElementById('step' + step).classList.add('active');
             document.getElementById('step' + step + 'Indicator').classList.add('active');
         }
+
 
         function setupTrialListeners() {
             setupTrial('bioPassword1', 'status1', 'trial1', 'bioPassword2');
