@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFA Verification - SecureNet</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="auth-page">
+    <!-- Navbar -->
+    <nav class="navbar navbar-auth">
+        <div class="container">
+            <a href="index.html" class="nav-brand">
+                <i class="fas fa-shield-alt"></i>
+                <span>SecureNet</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- MFA TOTP Verification Section -->
+    <section class="auth-section">
+        <div class="auth-container">
+            <div class="auth-card">
+                <div class="auth-header">
+                    <h1>Multi-Factor Authentication</h1>
+                    <p>Enter the 6-digit code from your authenticator app to complete login</p>
+                </div>
+
+                <form id="totpForm" class="auth-form">
+                    <div class="form-group">
+                        <label for="totpCode">
+                            <i class="fas fa-mobile-alt"></i> Authenticator Code
+                        </label>
+                        <input 
+                            type="text" 
+                            id="totpCode" 
+                            name="totpCode" 
+                            maxlength="6"
+                            pattern="[0-9]{6}"
+                            required 
+                            autofocus
+                            placeholder="Enter 6-digit code"
+                            autocomplete="one-time-code"
+                        >
+                        <small class="form-hint">
+                            Generated in your authenticator app like Google Authenticator or Authy.
+                        </small>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block" id="verifyBtn">
+                        <i class="fas fa-check"></i> Verify & Proceed
+                    </button>
+                </form>
+
+                <div id="errorAlert" class="alert alert-error" style="display:none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span id="errorMessage">Invalid code. Please try again.</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        // Obtain username from localStorage if present
+        const mfaPending = JSON.parse(localStorage.getItem('mfa_pending') || '{}');
+        const username = mfaPending.username || '';
+
+        document.getElementById('totpForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const code = document.getElementById('totpCode').value.trim();
+
+            const verifyBtn = document.getElementById('verifyBtn');
+            verifyBtn.disabled = true;
+            verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
+            try {
+                const response = await fetch('/api/mfa/verify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username,
+                        code
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    localStorage.setItem('auth_token', result.token);
+                    localStorage.setItem('user', JSON.stringify(result.user));
+                    window.location.href = 'dashboard.html';
+                } else {
+                    showError(result.error || 'Invalid code. Please try again.');
+                }
+            } catch {
+                showError('Network error. Please try again.');
+            } finally {
+                verifyBtn.disabled = false;
+                verifyBtn.innerHTML = '<i class="fas fa-check"></i> Verify & Proceed';
+            }
+        });
+
+        function showError(message) {
+            const alertDiv = document.getElementById('errorAlert');
+            document.getElementById('errorMessage').textContent = message;
+            alertDiv.style.display = 'flex';
+            setTimeout(() => { alertDiv.style.display = 'none'; }, 3500);
+        }
+    </script>
+</body>
+</html>
