@@ -322,13 +322,8 @@ This project is licensed under the **MIT License**.
 
 For issues or collaboration opportunities:
 
-**Email:** [your.email@example.com](mailto:your.email@example.com)
+**Email:** [securenet220@gmail.com](mailto:securenet220@gmail.com)
 **GitHub Issues:** Open a ticket anytime
 
----
 
-<p align="center"><b>Made with ❤️ for secure digital experiences</b></p>
-```
-
----
 
